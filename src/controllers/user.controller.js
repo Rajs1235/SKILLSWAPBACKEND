@@ -183,7 +183,7 @@ const options={
     secure:true
 }
 
-const {accesstoken,newrefreshtoken}=await generateAccessAndRefreshToken(user._id)
+const {accesstoken,refreshtoken:newrefreshtoken}=await generateAccessAndRefreshToken(user._id)
 return res
 .status(200)
 .cookie("accessToken",accesstoken,options)
@@ -240,7 +240,7 @@ const updateAccountDetails=asyncHandler(async(req,res)=>{
 
 
 const updateUserAvatar=asyncHandler(async(req,res)=>{
-    const avatarLocalPath=req.files?.path
+    const avatarLocalPath=req.file?.path
 
     if(!avatarLocalPath){
         throw new ApiError(400,"avatar needed")
@@ -300,7 +300,52 @@ $set:{
     )
 })
 
+const getMatchesForUser=asyncHandler(async(req,res)=>{
+   const known = await KnownSkill.find({ user: currentUserId }).select('skill');
+const target = await TargetSkill.find({ user: currentUserId }).select('skill');
+ 
+const knownSkillIds = known.map(k => k.skill.tostring());
+const targetSkillIds = target.map(t => t.skill.tostring());
 
+const matchingUsers = await User.find({
+  _id: { $ne: currentUserId }, // exclude self
+}).lean(); // for performance
+  const youCanLearn = userKnownIds.filter(skill => targetSkillIds.includes(skill));
+  const youCanTeach = userTargetIds.filter(skill => knownSkillIds.includes(skill));
+
+  if (youCanLearn.length && youCanTeach.length) {
+    matches.push({
+      userId: user._id,
+      fullName: user.fullName,
+      username: user.username,
+      avatar: user.avatar,
+      skillsTheyCanTeachYou: youCanLearn,
+      skillsYouCanTeachThem: youCanTeach
+    });
+  }
+return res
+.status(200)
+.json({
+  success: true,
+  matches
+});
+
+});
+const addMatch=asyncHandler();
+const getKnownSkills=asyncHandler(async(req,res)=>{
+    
+});
+const addKnownSkill=asyncHandler();
+const getTargetSkills=asyncHandler();
+const getUserProgress=asyncHandler();
+const updateUserProgress=asyncHandler();
+const getUserBadges=asyncHandler();
+const awardBadge=asyncHandler();
+const getUserConversations=asyncHandler();
+const getMessages=asyncHandler();
+const sendMessage=asyncHandler();
+const getTimeStats=asyncHandler();
+const updateTime=asyncHandler();
 
 
 
@@ -313,5 +358,18 @@ export { registerUser,
     updateAccountDetails,
 updateUserAvatar,
 updateUserCoverImage,
-
+getMatchesForUser,
+addMatch,
+getKnownSkills,
+addKnownSkill,
+getTargetSkills,
+getUserProgress,
+updateUserProgress,
+getUserBadges,
+awardBadge,
+getUserConversations,
+getMessages,
+sendMessage,
+getTimeStats,
+updateTime
 };
