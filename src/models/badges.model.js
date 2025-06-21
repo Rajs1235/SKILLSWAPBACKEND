@@ -12,7 +12,7 @@ const badgesSchema = new Schema({
     badges: {
         type: [{
             type: Schema.Types.ObjectId,
-            ref: "User"
+            ref: "Badge"
         }],
         required: true
     }
