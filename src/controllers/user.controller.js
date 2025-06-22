@@ -3,7 +3,14 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadonCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-
+import {KnownSkill} from "../models/knownskill.model.js"
+import {TargetSkill} from "../models/targetskill.model.js"
+import {Badge} from "../models/badge.model.js"
+import {Conversation} from "../models/conversation.model.js"
+import {Message} from "../models/message.model.js"
+import {Matches} from "../models/matches.model.js"
+import {Progress} from "../models/progress.model.js"
+import {TimeTracker} from "../models/timetracker.model.js"
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
 const { JsonWebTokenError }= jwt;
@@ -232,10 +239,12 @@ const updateAccountDetails=asyncHandler(async(req,res)=>{
             email:email
         }
     },{new:true}).select("-password")
+if (!/\S+@\S+\.\S+/.test(email)) throw new ApiError(400, "Invalid email format");
 
     return res
     .status(200)
-    .json(new ApiResponse(200,"ACCOUNT DETAILS UPDATED SUCCESSFULLY"))
+    .json(new ApiResponse(200, user, "Account details updated successfully"))
+
 })
 
 
@@ -300,52 +309,180 @@ $set:{
     )
 })
 
-const getMatchesForUser=asyncHandler(async(req,res)=>{
-   const known = await KnownSkill.find({ user: currentUserId }).select('skill');
-const target = await TargetSkill.find({ user: currentUserId }).select('skill');
- 
-const knownSkillIds = known.map(k => k.skill.tostring());
-const targetSkillIds = target.map(t => t.skill.tostring());
+const getMatchesForUser = asyncHandler(async (req, res) => {
+  const known = await KnownSkill.find({ userId: req.user._id }).select('skillName');
+  const target = await TargetSkill.find({ userId: req.user._id }).select('skillName');
 
-const matchingUsers = await User.find({
-  _id: { $ne: currentUserId }, // exclude self
-}).lean(); // for performance
-  const youCanLearn = userKnownIds.filter(skill => targetSkillIds.includes(skill));
-  const youCanTeach = userTargetIds.filter(skill => knownSkillIds.includes(skill));
+  const knownSkillNames = known.map(k => k.skillName);
+  const targetSkillNames = target.map(t => t.skillName);
 
-  if (youCanLearn.length && youCanTeach.length) {
-    matches.push({
-      userId: user._id,
-      fullName: user.fullName,
-      username: user.username,
-      avatar: user.avatar,
-      skillsTheyCanTeachYou: youCanLearn,
-      skillsYouCanTeachThem: youCanTeach
-    });
+  const allUsers = await User.find({ _id: { $ne: req.user._id } }); // exclude self
+
+  const matches = [];
+
+  for (const user of allUsers) {
+    const [userKnown, userTarget] = await Promise.all([
+      KnownSkill.find({ userId: user._id }).select('skillName'),
+      TargetSkill.find({ userId: user._id }).select('skillName'),
+    ]);
+
+    const userKnownSkills = userKnown.map(s => s.skillName);
+    const userTargetSkills = userTarget.map(s => s.skillName);
+
+    const skillsTheyCanTeachYou = userKnownSkills.filter(skill => targetSkillNames.includes(skill));
+    const skillsYouCanTeachThem = userTargetSkills.filter(skill => knownSkillNames.includes(skill));
+
+    if (skillsTheyCanTeachYou.length && skillsYouCanTeachThem.length) {
+      matches.push({
+        userId: user._id,
+        fullName: user.fullName,
+        username: user.username,
+        avatar: user.avatar,
+        skillsTheyCanTeachYou,
+        skillsYouCanTeachThem,
+      });
+    }
   }
-return res
-.status(200)
-.json({
-  success: true,
-  matches
+
+  res.status(200).json(new ApiResponse(200, matches, "Matches fetched"));
 });
 
+const addMatch = asyncHandler(async (req, res) => {
+  const userA = req.user; // logged-in user
+  const usernameB = req.params.username; // user to match with
+
+  if (userA.username === usernameB) {
+    throw new ApiError(400, "You cannot match with yourself");
+  }
+
+  const userB = await User.findOne({ username: usernameB });
+  if (!userB) throw new ApiError(404, "User not found");
+
+  // Get skills for both users
+  const [knownA, targetA, knownB, targetB] = await Promise.all([
+    KnownSkill.find({ userId: userA._id }),
+    TargetSkill.find({ userId: userA._id }),
+    KnownSkill.find({ userId: userB._id }),
+    TargetSkill.find({ userId: userB._id })
+  ]);
+
+  const knownASet = new Set(knownA.map(s => s.skill));
+  const targetASet = new Set(targetA.map(s => s.skill));
+  const knownBSet = new Set(knownB.map(s => s.skill));
+  const targetBSet = new Set(targetB.map(s => s.skill));
+
+  // Match logic
+  const matchedSkills = [];
+  for (let skill of knownASet) {
+    if (targetBSet.has(skill)) matchedSkills.push(skill);
+  }
+  for (let skill of targetASet) {
+    if (knownBSet.has(skill)) matchedSkills.push(skill);
+  }
+
+  if (matchedSkills.length === 0) {
+    throw new ApiError(400, "No skill match found");
+  }
+
+  // Save match in logged-in user's Match document
+  let matchDoc = await Matches.findOne({ username: userA.username });
+
+  if (!matchDoc) {
+    matchDoc = await Matches.create({
+      username: userA.username,
+      matches: [userB._id]
+    });
+  } else if (!matchDoc.matches.includes(userB._id)) {
+    matchDoc.matches.push(userB._id);
+    await matchDoc.save();
+  }
+
+  res.status(201).json(new ApiResponse(201, matchDoc, "Match added"));
 });
-const addMatch=asyncHandler();
 const getKnownSkills=asyncHandler(async(req,res)=>{
-    
+      const known = await KnownSkill.find({ userId: req.user._id });
+     return res.status(200).json(new ApiResponse(200,known,"known skills fetched"))
 });
-const addKnownSkill=asyncHandler();
-const getTargetSkills=asyncHandler();
-const getUserProgress=asyncHandler();
-const updateUserProgress=asyncHandler();
-const getUserBadges=asyncHandler();
-const awardBadge=asyncHandler();
-const getUserConversations=asyncHandler();
-const getMessages=asyncHandler();
-const sendMessage=asyncHandler();
-const getTimeStats=asyncHandler();
-const updateTime=asyncHandler();
+const getTargetSkills = asyncHandler(async (req, res) => {
+  const skills = await TargetSkill.find({ userId: req.user._id });
+ return res.status(200).json(new ApiResponse(200, skills, "Target skills fetched"));
+});
+const addKnownSkill=asyncHandler(async(req,res)=>{
+    const {skillName}=req.body;
+    const exists=await KnownSkill.findOne({userId: req.user._id, skillName });
+    if(exists)throw new ApiError(409, "Skill already added");
+    const skill=await KnownSkill.create({userId: req.user._id, skillName });
+  return  res
+    .status(200)
+    .json(new ApiResponse(201,skill,"skill added"))
+});
+const addTargetSkill = asyncHandler(async (req, res) => {
+  const { skillName } = req.body;
+      const exists=await KnownSkill.findOne({userId: req.user._id, skillName });
+    if(exists)throw new ApiError(409, "Skill already added");
+  const skill = await TargetSkill.create({ userId: req.user._id, skillName });
+ return res.status(201).json(new ApiResponse(201, skill, "Target skill added"));
+});
+const getUserProgress = asyncHandler(async (req, res) => {
+  const progress = await Progress.find({ userId: req.user._id });
+ return res.status(200).json(new ApiResponse(200, progress, "Progress data"));
+});
+const updateUserProgress = asyncHandler(async (req, res) => {
+  const { skillId, percent } = req.body;
+  if(percent<0||percent>100) throw new ApiError(400, "Progress must be between 0–100");
+  const updated = await Progress.findOneAndUpdate(
+    { userId: req.user._id, skillId },
+    { $set: { percent } },
+    { upsert: true, new: true }
+  );
+ return res.status(200).json(new ApiResponse(200, updated, "Progress updated"));
+});
+const getUserBadges=asyncHandler(async(req,res)=>{
+    const badges=await Badge.find({userId:req.user._id})
+  return res.status(200)
+    .json(new ApiResponse(200,badges,"badges fetched"))
+});
+const awardBadge=asyncHandler(async(req,res)=>{
+    const {title,description}=req.body;
+    if(!title)throw new ApiError(400, "Title is required");
+    const badge=await Badge.create({user:req.user._id,title,description});
+   return res.status(201)
+    .json(new ApiResponse(201,badge,"badge awarded"))
+});
+const getUserConversations = asyncHandler(async (req, res) => {
+  const conversations = await Conversation.find({ participants: req.user._id });
+  res.status(200).json(new ApiResponse(200, conversations));
+});
+
+const getMessages = asyncHandler(async (req, res) => {
+  const messages = await Message.find({ conversationId: req.params.conversationId });
+  res.status(200).json(new ApiResponse(200, messages));
+});
+
+const sendMessage = asyncHandler(async (req, res) => {
+  const { conversationId, content } = req.body;
+  if(!conversationId||!content) throw new ApiError(404, "Conversation not found");
+  const message = await Message.create({
+    conversationId,
+    sender: req.user._id,
+    content,
+  });
+
+  res.status(201).json(new ApiResponse(201, message, "Message sent"));
+});
+const getTimeStats = asyncHandler(async (req, res) => {
+  const time = await TimeTracker.findOne({ userId: req.user._id });
+  res.status(200).json(new ApiResponse(200, time));
+});
+const updateTime = asyncHandler(async (req, res) => {
+  const { minutes } = req.body;
+  const time = await TimeTracker.findOneAndUpdate(
+    { userId: req.user._id },
+    { $inc: { totalMinutes: minutes } },
+    { upsert: true, new: true }
+  );
+  res.status(200).json(new ApiResponse(200, time, "Time updated"));
+});
 
 
 
@@ -370,6 +507,7 @@ awardBadge,
 getUserConversations,
 getMessages,
 sendMessage,
+addTargetSkill,
 getTimeStats,
 updateTime
 };
