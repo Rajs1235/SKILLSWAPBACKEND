@@ -21,4 +21,4 @@ const targetskillSchema = new Schema({
 }
     , { timestamps: true })
 
-export const targetSkill = mongoose.model("targetSkill", targetskillSchema);
+export const TargetSkill = mongoose.model("targetSkill", targetskillSchema);

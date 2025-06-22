@@ -36,7 +36,7 @@ const  userSchema=new Schema({
 
 userSchema.pre("save", async function(next){//abhi y hoga ki hr save p
 //  password update krne lgega
-    if(!this.isModified("password"))return next;
+    if(!this.isModified("password"))return next();
     this.password=await bcrypt.hash(this.password,10)
 next()
 })
@@ -54,7 +54,7 @@ userSchema.methods.generateAccessToken= function
             _id:this._id,
             email:this.email,
             username:this.username,
-            fullname:this.fullname
+            fullname:this.fullName
         },
         process.env.ACCESS_TOKEN_SECRET,{
             expiresIn:process.env.ACCESS_TOKEN_EXPIRY

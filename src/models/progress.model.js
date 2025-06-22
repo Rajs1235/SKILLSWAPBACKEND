@@ -14,10 +14,12 @@ const progressSchema = new Schema({
         required: true
     },
     percentageComplete: {
-        type: Decimal128,
+        type: Number,
+        min:0,
+        max:100,
         required: true
     }
 },
     { timestamps: true })
 
-export const ProgressSchema = mongoose.model("progress", progressSchema);
+export const Progress= mongoose.model("progress", progressSchema);

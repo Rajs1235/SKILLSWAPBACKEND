@@ -20,83 +20,69 @@ const generateAccessAndRefreshToken=async(userId)=>{
        const accesstoken=user.generateAccessToken()
        const refreshtoken=user.generateRefreshToken()
 
-user.refreshtoken=refreshtoken
+user.refreshToken=refreshtoken;
 await user.save({validateBeforeSave:false})
 return {accesstoken,refreshtoken}
 
     } catch (error) {
+       console.error("Error in generateAccessAndRefreshToken:", error);
         throw new ApiError(500,"somethingwentwrong");
         
     }
 }
 const registerUser = asyncHandler(async (req, res) => {
-    // Step 1: Get user details from frontend
     const { fullName, email, username, password } = req.body;
-    
-    // Step 2: Validation - check for empty fields
-    if ([fullName, email, password, username].some((field) => field?.trim() === "")) {
+
+    // Step 1: Validate input
+    if ([fullName, email, username, password].some(field => !field?.trim())) {
         throw new ApiError(400, "All fields are required");
     }
 
-    // Step 3: Check if user already exists
+    // Step 2: Check if user already exists
     const existingUser = await User.findOne({
-        $or: [{ username }, { email }]
+        $or: [{ email }, { username }]
     });
-    
+
     if (existingUser) {
         throw new ApiError(409, "User with email or username already exists");
     }
 
-    // Step 4: Check for avatar (required) and cover image (optional)
-    const avatarLocalPath = req.files?.avatar?.[0]?.path;
-    
-    // Check if avatar exists
-    if (!avatarLocalPath) {
+    // Step 3: Check for avatar (required) and cover image (optional)
+    const avatarBuffer = req.files?.avatar?.[0]?.buffer;
+    if (!avatarBuffer) {
         throw new ApiError(400, "Avatar file is required");
     }
 
-    // Get cover image path if exists
-    let coverImageLocalPath;
-    if (req.files?.coverImage && Array.isArray(req.files.coverImage)) {
-        coverImageLocalPath = req.files.coverImage[0].path;
-    }
-
-    // Step 5: Upload files to Cloudinary
-    const avatar = await uploadonCloudinary(avatarLocalPath);
-    let coverImage;
-    
-    if (coverImageLocalPath) {
-        coverImage = await uploadonCloudinary(coverImageLocalPath);
-    }
-
-    // Check if avatar upload was successful
-    if (!avatar) {
+    // Step 4: Upload to Cloudinary using memory buffer
+    const avatar = await uploadonCloudinary(avatarBuffer, "avatars");
+    if (!avatar || !avatar.secure_url) {
         throw new ApiError(400, "Avatar file upload failed");
     }
 
-    // Step 6: Create user object - entry in db
-    const user = await User.create({
-        fullName,
-        avatar: avatar.url,
-        coverImage: coverImage?.url || "",
-        email,
-        password,
-        username: username.toLowerCase()
-    });
-
-    // Step 7: Remove sensitive fields from response
-    const createdUser = await User.findById(user._id).select(
-        "-password -refreshToken"
-    );
-
-    // Step 8: Check for user creation
-    if (!createdUser) {
-        throw new ApiError(500, "Something went wrong while registering the user");
+    let coverImage;
+    const coverImageBuffer = req.files?.coverImage?.[0]?.buffer;
+    if (coverImageBuffer) {
+        coverImage = await uploadonCloudinary(coverImageBuffer, "covers");
     }
 
-    // Step 9: Return response
+    // Step 5: Create user
+    const user = await User.create({
+        fullName,
+        email,
+        username: username.toLowerCase(),
+        password,
+        avatar: avatar.secure_url,
+        coverImage: coverImage?.secure_url || ""
+    });
+
+    const createdUser = await User.findById(user._id).select("-password -refreshToken");
+
+    if (!createdUser) {
+        throw new ApiError(500, "Something went wrong while creating user");
+    }
+
     return res.status(201).json(
-        new ApiResponse(200, createdUser, "User registered successfully")
+        new ApiResponse(201, createdUser, "User registered successfully")
     );
 });
 
@@ -408,19 +394,36 @@ const getTargetSkills = asyncHandler(async (req, res) => {
  return res.status(200).json(new ApiResponse(200, skills, "Target skills fetched"));
 });
 const addKnownSkill=asyncHandler(async(req,res)=>{
-    const {skillName}=req.body;
-    const exists=await KnownSkill.findOne({userId: req.user._id, skillName });
-    if(exists)throw new ApiError(409, "Skill already added");
-    const skill=await KnownSkill.create({userId: req.user._id, skillName });
-  return  res
-    .status(200)
-    .json(new ApiResponse(201,skill,"skill added"))
+   const { skillName } = req.body;
+
+  if (!skillName) {
+    throw new ApiError(400, "Skill name is required");
+  }
+
+  const username = req.user?.username; // comes from JWT
+
+  if (!username) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const newSkill = await KnownSkill.create({ username, skillName });
+
+  res.status(201).json(new ApiResponse(201, newSkill, "Skill added successfully"));
 });
 const addTargetSkill = asyncHandler(async (req, res) => {
   const { skillName } = req.body;
-      const exists=await KnownSkill.findOne({userId: req.user._id, skillName });
+  if(!skillName){
+    throw new ApiError(400, "Skill name is required");
+  }
+   const username = req.user?.username;
+
+  if (!username) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+      const exists=await KnownSkill.findOne({username: req.user._id, skillName });
     if(exists)throw new ApiError(409, "Skill already added");
-  const skill = await TargetSkill.create({ userId: req.user._id, skillName });
+  const skill = await TargetSkill.create({ username, skillName });
  return res.status(201).json(new ApiResponse(201, skill, "Target skill added"));
 });
 const getUserProgress = asyncHandler(async (req, res) => {

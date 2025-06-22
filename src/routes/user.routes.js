@@ -3,15 +3,17 @@ import {
     loginUser,
     logoutUser,
     registerUser,
-    refreshAccessToken, 
+    refreshAccessToken,
     changeCurrentPassword,
-    getcurrentUser, 
+    getcurrentUser,
     updateAccountDetails,
     getMatchesForUser,
     addMatch,
     getKnownSkills,
     addKnownSkill,
     getTargetSkills,
+updateUserAvatar,
+updateUserCoverImage,
     addTargetSkill,
     getUserProgress,
     updateUserProgress,
@@ -22,11 +24,11 @@ import {
     sendMessage,
     getTimeStats,
     updateTime
-} from '../controllers/user.controllers.js';
+} from '../controllers/user.controller.js';
 
 import { verifyJWT } from '../middleware/auth.middleware.js';
-
-const router=express.Router();
+import upload from '../middleware/upload.middleware.js';
+const router = express.Router();
 
 
 //seccured routes
@@ -37,23 +39,24 @@ router.post("/register", upload.fields([
 ]), registerUser);
 router.post("/login", loginUser);
 router.post("/refresh-token", refreshAccessToken);
-
-// User
 router.post("/logout", verifyJWT, logoutUser);
 router.post("/change-password", verifyJWT, changeCurrentPassword);
+
+// User
 router.get("/current-user", verifyJWT, getcurrentUser);
 router.patch("/update-details", verifyJWT, updateAccountDetails);
-
+router.patch("/avatar", verifyJWT, upload.single("avatar"), updateUserAvatar);
+router.patch("/cover", verifyJWT, upload.single("coverImage"), updateUserCoverImage);
 
 // Matches
-router.route('/matches/:username')
-    .get(verifyJWT, getMatchesForUser)
-    .post(verifyJWT, addMatch);
+router.get("/matches", verifyJWT, getMatchesForUser);
+router.post("/matches/:username", verifyJWT, addMatch);
 
 // Skills
 router.route('/skills/known')
     .get(verifyJWT, getKnownSkills)
     .post(verifyJWT, addKnownSkill);
+
 router.route('/skills/target')
     .get(verifyJWT, getTargetSkills)
     .post(verifyJWT, addTargetSkill);
@@ -76,6 +79,8 @@ router.post('/messages', verifyJWT, sendMessage);
 // Time Tracker
 router.get('/time', verifyJWT, getTimeStats);
 router.patch('/time', verifyJWT, updateTime);
+
+
 
 
 

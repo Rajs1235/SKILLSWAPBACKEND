@@ -19,4 +19,4 @@ endtime:{
 }
 },{timestamps:true})
 
-export const timetracker=mongoose.model("timetracker",timetrackerSchema)
+export const TimeTracker=mongoose.model("timetracker",timetrackerSchema)
