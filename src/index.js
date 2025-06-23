@@ -4,6 +4,9 @@ import connectDB from "./db/index.js";
 import { app } from "./app.js";
 
 
+app.get('/', (req, res) => {
+  res.send('SkillSwap backend is running 🎉');
+});
 
 
 
