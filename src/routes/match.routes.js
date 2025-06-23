@@ -1,0 +1,22 @@
+const express = require('express');
+const router = express.Router();
+const crypto = require('crypto');
+
+// Helper to generate consistent room ID between two users
+const getRoomId = (userA, userB) => {
+  const sorted = [userA, userB].sort().join('-');
+  return 'skillshare-' + crypto.createHash('sha256').update(sorted).digest('hex').slice(0, 10);
+};
+
+// GET /v1/match/room/:user1/:user2
+router.get('/room/:user1/:user2', (req, res) => {
+  const { user1, user2 } = req.params;
+  if (!user1 || !user2) {
+    return res.status(400).json({ error: 'Both user IDs are required' });
+  }
+
+  const roomId = getRoomId(user1, user2);
+  res.json({ roomId });
+});
+
+module.exports = router;
