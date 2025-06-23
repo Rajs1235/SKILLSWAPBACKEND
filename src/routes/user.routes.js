@@ -86,7 +86,7 @@ router.route('/badges')
 router.get('/conversations', verifyJWT, getUserConversations);
 router.get('/messages/:conversationId', verifyJWT, getMessages);
 router.post('/messages', verifyJWT, sendMessage);
-
+router.post('/conversations', verifyJWT, getUserConversations);
 // Time Tracker
 router.get('/time', verifyJWT, getTimeStats);
 router.patch('/time', verifyJWT, updateTime);

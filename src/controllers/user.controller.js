@@ -485,7 +485,41 @@ const updateTime = asyncHandler(async (req, res) => {
   );
   res.status(200).json(new ApiResponse(200, time, "Time updated"));
 });
+ 
+const createConversation = asyncHandler(async (req, res) => {
+  const { senderId, receiverId } = req.body;
 
+  if (!senderId || !receiverId) {
+    return res.status(400).json({
+      success: false,
+      message: "Both senderId and receiverId are required.",
+    });
+  }
+
+  let existing = await Conversation.findOne({
+    members: { $all: [senderId, receiverId] },
+  });
+
+  if (existing) {
+    return res.status(200).json({
+      statusCode: 200,
+      data: existing,
+      message: "Conversation already exists",
+      success: true,
+    });
+  }
+
+  const newConversation = await Conversation.create({
+    members: [senderId, receiverId],
+  });
+
+  return res.status(201).json({
+    statusCode: 201,
+    data: newConversation,
+    message: "Conversation created",
+    success: true,
+  });
+});
 
 
 export { registerUser,
