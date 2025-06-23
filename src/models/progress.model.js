@@ -9,6 +9,22 @@ const progressSchema = new Schema({
         index: true,
         trim: true
     },
+    skillId:{
+       type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        index: true,
+        trim: true  
+    }, userId:{
+       type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        index: true,
+        trim: true  
+    },
+
     hoursspent: {
         type: Number,
         required: true

@@ -12,6 +12,7 @@ import {Matches} from "../models/matches.model.js"
 import {Progress} from "../models/progress.model.js"
 import {TimeTracker} from "../models/timetracker.model.js"
 import jwt from "jsonwebtoken"
+import upload from "../middleware/upload.middleware.js";
 import mongoose from "mongoose";
 const { JsonWebTokenError }= jwt;
 const generateAccessAndRefreshToken=async(userId)=>{
@@ -235,18 +236,17 @@ if (!/\S+@\S+\.\S+/.test(email)) throw new ApiError(400, "Invalid email format")
 
 
 const updateUserAvatar=asyncHandler(async(req,res)=>{
-    const avatarLocalPath=req.file?.path
+  const avatarBuffer = req.file?.buffer;
+if (!avatarBuffer) {
+  throw new ApiError(400, "Avatar is required");
+}
 
-    if(!avatarLocalPath){
-        throw new ApiError(400,"avatar needed")
-    }
+const avatar = await uploadonCloudinary(avatarBuffer, "avatars");
 
-    const avatar=await uploadonCloudinary(avatarLocalPath)
+if (!avatar.secure_url) {
+  throw new ApiError(400, "Avatar upload failed");
+}
 
-    if(!avatar.url){
-        throw new ApiError(400,"avatar upload failed")
-
-    }
    const user=await User.findByIdAndUpdate(
         req.user?._id,
         {
@@ -266,18 +266,17 @@ $set:{
 })
 
 const updateUserCoverImage=asyncHandler(async(req,res)=>{
-    const coverImageLocalPath=req.file?.path
+const coverBuffer = req.file?.buffer;
+if (!coverBuffer) {
+  throw new ApiError(400, "Cover image is required");
+}
 
-    if(!coverImageLocalPath){
-        throw new ApiError(400,"cover image needed")
-    }
+const coverImage = await uploadonCloudinary(coverBuffer, "covers");
 
-    const coverImage=await uploadonCloudinary(coverImageLocalPath)
+if (!coverImage.secure_url) {
+  throw new ApiError(400, "Cover image upload failed");
+}
 
-    if(!coverImage.url){
-        throw new ApiError(400,"image upload failed")
-
-    }
     const user=await User.findByIdAndUpdate(
         req.user?._id,
         {
