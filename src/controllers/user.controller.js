@@ -33,10 +33,10 @@ return {accesstoken,refreshtoken}
     }
 }
 const registerUser = asyncHandler(async (req, res) => {
-    const { fullName, email, username, password } = req.body;
+    const { email, username, password } = req.body;
 
-    // Step 1: Validate input
-    if ([fullName, email, username, password].some(field => !field?.trim())) {
+    // Step 1: Validate input (no fullName or avatar for now)
+    if ([email, username, password].some(field => !field?.trim())) {
         throw new ApiError(400, "All fields are required");
     }
 
@@ -49,32 +49,11 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409, "User with email or username already exists");
     }
 
-    // Step 3: Check for avatar (required) and cover image (optional)
-    const avatarBuffer = req.files?.avatar?.[0]?.buffer;
-    if (!avatarBuffer) {
-        throw new ApiError(400, "Avatar file is required");
-    }
-
-    // Step 4: Upload to Cloudinary using memory buffer
-    const avatar = await uploadonCloudinary(avatarBuffer, "avatars");
-    if (!avatar || !avatar.secure_url) {
-        throw new ApiError(400, "Avatar file upload failed");
-    }
-
-    let coverImage;
-    const coverImageBuffer = req.files?.coverImage?.[0]?.buffer;
-    if (coverImageBuffer) {
-        coverImage = await uploadonCloudinary(coverImageBuffer, "covers");
-    }
-
-    // Step 5: Create user
+    // Step 3: Create user (no avatar, no cover image)
     const user = await User.create({
-        fullName,
         email,
         username: username.toLowerCase(),
-        password,
-        avatar: avatar.secure_url,
-        coverImage: coverImage?.secure_url || ""
+        password
     });
 
     const createdUser = await User.findById(user._id).select("-password -refreshToken");

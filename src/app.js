@@ -10,7 +10,7 @@ import chatRoutes from "./routes/chat.routes.js";
 import ChatMessage from "./models/message.model.js";
 
 const app = express();
-
+app.use(express.json());
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
     credentials: true
