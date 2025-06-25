@@ -1,74 +1,78 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import router from './routes/user.routes.js'
-import dropIndexRoutes from './routes/user.routes.js';
-import chatRoutes from './routes/chat.routes.js';
-import http from 'http';
-import { Server } from 'socket.io';
-import ChatMessage from './models/message.model.js'; // or chatmessage.model.js depending on your filename
+import http from "http";
+import { Server } from "socket.io";
 
+import userRoutes from "./routes/user.routes.js";
+import matchRoutes from "./routes/match.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
+import ChatMessage from "./models/message.model.js";
 
-const app=express();
+const app = express();
 
 app.use(cors({
-    origin:process.env.CORS_ORIGIN,
-    credentials:true
+    origin: process.env.CORS_ORIGIN || "*",
+    credentials: true
 }));
 
-app.use('/v1/chat', chatRoutes);
-app.use(express.json({limit:"16kb"}));
-app.use(express.urlencoded({extended:true,limit:"16kb"}));
-app.use(express.static("public"));
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
-app.use('/admin', dropIndexRoutes); // or however your app structure is
-//routes
+app.use(express.static("public"));
 
-const matchRoutes = require('./routes/match.routes');
-app.use('/v1/match', matchRoutes);
+// Mount routes
+app.get("/", (req, res) => {
+  res.send("✅ SkillSwap Backend is running");
+});
 
-//route declaration
+app.use("/api/v1/users", userRoutes);
+app.use("/v1/chat", chatRoutes);
+app.use("/v1/match", matchRoutes);
+
+// Setup HTTP server and Socket.IO
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // or your frontend domain
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
-io.on('connection', (socket) => {
-  console.log('🔌 A user connected');
 
-  // Join Room
-  socket.on('join_room', ({ roomId, userId }) => {
+io.on("connection", (socket) => {
+  console.log("🔌 A user connected");
+
+  socket.on("join_room", ({ roomId, userId }) => {
     socket.join(roomId);
     console.log(`User ${userId} joined room ${roomId}`);
   });
 
-  // Leave Room
-  socket.on('leave_room', ({ roomId, userId }) => {
+  socket.on("leave_room", ({ roomId, userId }) => {
     socket.leave(roomId);
     console.log(`User ${userId} left room ${roomId}`);
   });
-
-  // Send Message
-  socket.on('send_message', async (msg) => {
-    const { roomId, senderId, text, timestamp, senderName } = msg;
-
-    try {
-      const saved = await ChatMessage.create({ roomId, sender: senderId, text, timestamp });
-      io.to(roomId).emit('receive_message', {
-        ...saved.toObject(),
-        senderName // this can be passed from frontend
-      });
-    } catch (err) {
-      console.error('❌ Error saving message:', err);
-    }
-  });
-
-  socket.on('disconnect', () => {
-    console.log('❌ User disconnected');
-  });
+socket.on("new_match", ({ from, chatRoomId, videoRoomId }) => {
+  // Notify user of new match and optionally auto-connect
+  alert(`You have a new match with ${from}`);
 });
 
-app.use("/api/v1/users",router)
-export {app}
+  socket.on("send_message", async (msg) => {
+    const { roomId, senderId, text, senderName } = msg;
+
+    try {
+      const saved = await ChatMessage.create({
+        conversation: roomId, // schema field name
+        sender: senderId,
+        content: text
+      });
+
+      io.to(roomId).emit("receive_message", {
+        ...saved.toObject(),
+        senderName
+      });
+    } catch (err) {
+      console.error("❌ Error saving message:", err);
+    }
+  });
+});
+export {app,server};

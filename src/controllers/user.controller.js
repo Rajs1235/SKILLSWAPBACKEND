@@ -7,10 +7,11 @@ import {KnownSkill} from "../models/knownskill.model.js"
 import {TargetSkill} from "../models/targetskill.model.js"
 import {Badge} from "../models/badge.model.js"
 import {Conversation} from "../models/conversation.model.js"
-import {Message} from "../models/message.model.js"
+import Message from "../models/message.model.js"
 import {Matches} from "../models/matches.model.js"
 import {Progress} from "../models/progress.model.js"
 import {TimeTracker} from "../models/timetracker.model.js"
+import crypto from 'crypto';
 import jwt from "jsonwebtoken"
 import upload from "../middleware/upload.middleware.js";
 import mongoose from "mongoose";
@@ -293,41 +294,58 @@ $set:{
         new ApiResponse(200,user,"image updated")
     )
 })
-
+const generateRoomId = (a, b) => {
+  const sorted = [a, b].sort(); // ensure consistent order
+  return crypto.createHash('sha256').update(sorted.join('-')).digest('hex').slice(0, 16);
+};
 const getMatchesForUser = asyncHandler(async (req, res) => {
-  const known = await KnownSkill.find({ userId: req.user._id }).select('skillName');
-  const target = await TargetSkill.find({ userId: req.user._id }).select('skillName');
+const known = await KnownSkill.findOne({ userId: req.user._id });
+const target = await TargetSkill.findOne({ userId: req.user._id });
 
-  const knownSkillNames = known.map(k => k.skillName);
-  const targetSkillNames = target.map(t => t.skillName);
+const knownSkillNames = known?.skills.map(s => s.skill) || [];
+const targetSkillNames = target?.skills.map(s => s.skill) || [];
+
 
   const allUsers = await User.find({ _id: { $ne: req.user._id } }); // exclude self
 
   const matches = [];
 
   for (const user of allUsers) {
-    const [userKnown, userTarget] = await Promise.all([
-      KnownSkill.find({ userId: user._id }).select('skillName'),
-      TargetSkill.find({ userId: user._id }).select('skillName'),
-    ]);
+ const [userKnownDoc, userTargetDoc] = await Promise.all([
+  KnownSkill.findOne({ userId: user._id }),
+  TargetSkill.findOne({ userId: user._id })
+]);
 
-    const userKnownSkills = userKnown.map(s => s.skillName);
-    const userTargetSkills = userTarget.map(s => s.skillName);
+const userKnownSkills = userKnownDoc?.skills.map(s => s.skill) || [];
+const userTargetSkills = userTargetDoc?.skills.map(s => s.skill) || [];
+
 
     const skillsTheyCanTeachYou = userKnownSkills.filter(skill => targetSkillNames.includes(skill));
     const skillsYouCanTeachThem = userTargetSkills.filter(skill => knownSkillNames.includes(skill));
 
     if (skillsTheyCanTeachYou.length && skillsYouCanTeachThem.length) {
+      const chatRoomId = generateRoomId(req.user.username, user.username);
+      const videoRoomId = generateRoomId(req.user._id.toString(), user._id.toString());
+
       matches.push({
         userId: user._id,
         fullName: user.fullName,
         username: user.username,
         avatar: user.avatar,
-        skillsTheyCanTeachYou,
-        skillsYouCanTeachThem,
+chatRoomId,
+videoRoomId 
       });
     }
   }
+  await Matches.findOneAndUpdate(
+    { username: req.user.username },
+    {
+      $set:{
+        matches: matches.map(m => m.userId)
+      }
+    },
+    { upsert: true, new: true }
+  )
 
   res.status(200).json(new ApiResponse(200, matches, "Matches fetched"));
 });
@@ -335,6 +353,8 @@ const getMatchesForUser = asyncHandler(async (req, res) => {
 const addMatch = asyncHandler(async (req, res) => {
   const userA = req.user; // logged-in user
   const usernameB = req.params.username; // user to match with
+ const chatRoomId = uuidv4();
+  const videoRoomId = uuidv4();
 
   if (userA.username === usernameB) {
     throw new ApiError(400, "You cannot match with yourself");
@@ -351,10 +371,10 @@ const addMatch = asyncHandler(async (req, res) => {
     TargetSkill.find({ userId: userB._id })
   ]);
 
-  const knownASet = new Set(knownA.map(s => s.skill));
-  const targetASet = new Set(targetA.map(s => s.skill));
-  const knownBSet = new Set(knownB.map(s => s.skill));
-  const targetBSet = new Set(targetB.map(s => s.skill));
+const knownASet = new Set(knownA.flatMap(d => d.skills.map(s => s.skill)));
+  const targetASet = new Set(targetA.flatMap(d => d.skills.map(s => s.skill)));
+  const knownBSet = new Set(knownB.flatMap(d => d.skills.map(s => s.skill)));
+  const targetBSet = new Set(targetB.flatMap(d => d.skills.map(s => s.skill)));
 
   // Match logic
   const matchedSkills = [];
@@ -381,49 +401,98 @@ const addMatch = asyncHandler(async (req, res) => {
     matchDoc.matches.push(userB._id);
     await matchDoc.save();
   }
+   req.io?.to(userB._id.toString()).emit("new_match", {
+    from: userA.username,
+    chatRoomId,
+    videoRoomId
+  });
 
-  res.status(201).json(new ApiResponse(201, matchDoc, "Match added"));
+
+  return res.status(201).json(new ApiResponse(201, {
+    matchedWith: userB.username,
+    chatRoomId,
+    videoRoomId
+  }, "Match created and room IDs generated"));
 });
 const getKnownSkills=asyncHandler(async(req,res)=>{
-      const known = await KnownSkill.find({ userId: req.user._id });
-     return res.status(200).json(new ApiResponse(200,known,"known skills fetched"))
+      const known = await KnownSkill.findOne({ userId: req.user._id });
+      if(!known) {
+        return res.status(200).json(new ApiResponse(200, [], "No known skills found"));
+      }
+    
+     return res.status(200).json(new ApiResponse(200,known.skills,"known skills fetched"))
 });
 const getTargetSkills = asyncHandler(async (req, res) => {
-  const skills = await TargetSkill.find({ userId: req.user._id });
- return res.status(200).json(new ApiResponse(200, skills, "Target skills fetched"));
+  const target = await TargetSkill.findOne({ userId: req.user._id });
+  if(!target){
+    return res.status(200).json(new ApiResponse(200, [], "No target skills found"));
+  }
+ return res.status(200).json(new ApiResponse(200, target.skills, "Target skills fetched"));
 });
-const addKnownSkill=asyncHandler(async(req,res)=>{
-   const { skillName } = req.body;
+const addKnownSkill = asyncHandler(async (req, res) => {
+  let { skillName, level } = req.body;
 
-  if (!skillName) {
-    throw new ApiError(400, "Skill name is required");
+  if (!skillName || typeof level !== "number") {
+    throw new ApiError(400, "Both skill name and level are required");
   }
 
-  const username = req.user?.username; // comes from JWT
-
-  if (!username) {
-    throw new ApiError(401, "Unauthorized");
+  // Ensure skillName is a string
+  if (Array.isArray(skillName)) {
+    skillName = skillName[0]; // or reject entirely
   }
 
-  const newSkill = await KnownSkill.create({ username, skillName });
+  const { _id: userId, username } = req.user;
 
-  res.status(201).json(new ApiResponse(201, newSkill, "Skill added successfully"));
+  let skillDoc = await KnownSkill.findOne({ userId });
+
+  if (!skillDoc) {
+    skillDoc = await KnownSkill.create({
+      userId,
+      username,
+      skills: [{ skill: skillName, level }]
+    });
+  } else {
+    const exists = skillDoc.skills.find((s) => s.skill === skillName);
+    if (exists) throw new ApiError(409, "Skill already added");
+
+    skillDoc.skills.push({ skill: skillName, level });
+    await skillDoc.save();
+  }
+
+  res.status(201).json(new ApiResponse(201, skillDoc.skills, "Skill added successfully"));
 });
+
 const addTargetSkill = asyncHandler(async (req, res) => {
-  const { skillName } = req.body;
-  if(!skillName){
-    throw new ApiError(400, "Skill name is required");
-  }
-   const username = req.user?.username;
+let { skillName, level } = req.body;
 
-  if (!username) {
-    throw new ApiError(401, "Unauthorized");
+  if (!skillName || typeof level !== "number") {
+    throw new ApiError(400, "Both skill name and level are required");
   }
 
-      const exists=await KnownSkill.findOne({username: req.user._id, skillName });
-    if(exists)throw new ApiError(409, "Skill already added");
-  const skill = await TargetSkill.create({ username, skillName });
- return res.status(201).json(new ApiResponse(201, skill, "Target skill added"));
+  // Ensure skillName is a string
+  if (Array.isArray(skillName)) {
+    skillName = skillName[0]; // or reject entirely
+  }
+
+  const { _id: userId, username } = req.user;
+
+  let skillDoc = await TargetSkill.findOne({ userId });
+
+  if (!skillDoc) {
+    skillDoc = await TargetSkill.create({
+      userId,
+      username,
+      skills: [{ skill: skillName, level }]
+    });
+  } else {
+    const exists = skillDoc.skills.find((s) => s.skill === skillName);
+    if (exists) throw new ApiError(409, "Skill already added");
+
+    skillDoc.skills.push({ skill: skillName, level });
+    await skillDoc.save();
+  }
+
+  res.status(201).json(new ApiResponse(201, skillDoc.skills, "Skill added successfully"));
 });
 const getUserProgress = asyncHandler(async (req, res) => {
   const progress = await Progress.find({ userId: req.user._id });

@@ -1,13 +1,13 @@
 import express from 'express';
-import ChatMessage from '../models/message.model.js';
+import Message from '../models/message.model.js';
 
 const router = express.Router();
 
 // GET /v1/chat/:roomId
-router.get('/:roomId', async (req, res) => {
+router.get('/:conversationId', async (req, res) => {
   try {
-    const messages = await ChatMessage.find({ roomId: req.params.roomId })
-      .sort({ timestamp: 1 }); // oldest first
+    const messages = await Message.find({ conversationId : req.params.roomId })
+      .sort({ createdAt: 1 }); // oldest first
     res.json({ success: true, messages });
   } catch (err) {
     console.error(err);

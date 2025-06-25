@@ -1,7 +1,7 @@
-const express = require('express');
-const router = express.Router();
-const crypto = require('crypto');
+import express from 'express'
 
+import crypto from 'crypto';
+const router = express.Router();
 // Helper to generate consistent room ID between two users
 const getRoomId = (userA, userB) => {
   const sorted = [userA, userB].sort().join('-');
@@ -19,4 +19,4 @@ router.get('/room/:user1/:user2', (req, res) => {
   res.json({ roomId });
 });
 
-module.exports = router;
+export default router;

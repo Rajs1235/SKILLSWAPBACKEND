@@ -1,6 +1,12 @@
 import { mongoose, Schema } from "mongoose";
 
+
 const knownskillSchema = new Schema({
+    userId:{
+        type:Schema.Types.ObjectId,
+        ref:"User",
+        required:true
+    },
     username: {
         type: String,
         required: true,

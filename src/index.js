@@ -1,12 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 import connectDB from "./db/index.js";
-import { app } from "./app.js";
+import { server } from "./app.js";
 
-
-app.get('/', (req, res) => {
-  res.send('SkillSwap backend is running 🎉');
-});
 
 
 
@@ -15,8 +11,8 @@ console.log("🔍 Loaded MONGODB_URI:", process.env.MONGODB_URI);
 
 connectDB()
 .then(()=>{
-    app.listen(process.env.PORT||8000,()=>{
-        console.log(`server is running on port ${process.env.PORT}`);
+    server.listen(process.env.PORT||8000,()=>{
+        console.log(`server is running on port ${process.env.PORT||8000}`);
         
     })
 })

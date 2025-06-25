@@ -8,6 +8,11 @@ const targetskillSchema = new Schema({
         index: true,
         trim: true
     },
+    userId:{
+       type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true 
+    },
     skills: [{
         skill: {
             type: String,
