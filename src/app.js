@@ -12,7 +12,7 @@ import ChatMessage from "./models/message.model.js";
 const app = express();
 app.use(express.json());
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin:["https://myskillshare.netlify.app","http://localhost:3000"],
     credentials: true
 }));
 
