@@ -11,7 +11,7 @@ console.log("🔍 Loaded MONGODB_URI:", process.env.MONGODB_URI);
 
 connectDB()
 .then(()=>{
-    server.listen(process.env.PORT||8000,()=>{
+    server.listen(process.env.PORT||3000,()=>{
         console.log(`server is running on port ${process.env.PORT||8000}`);
         
     })

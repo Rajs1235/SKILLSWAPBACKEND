@@ -10,7 +10,7 @@ import chatRoutes from "./routes/chat.routes.js";
 import ChatMessage from "./models/message.model.js";
 
 const app = express();
-app.use(express.json());
+
 app.use(cors({
     origin:["https://myskillshare.netlify.app","http://localhost:3000"],
     credentials: true
@@ -53,7 +53,7 @@ io.on("connection", (socket) => {
   });
 socket.on("new_match", ({ from, chatRoomId, videoRoomId }) => {
   // Notify user of new match and optionally auto-connect
-  alert(`You have a new match with ${from}`);
+console.log(`You have a new match with ${from}`);
 });
 
   socket.on("send_message", async (msg) => {
