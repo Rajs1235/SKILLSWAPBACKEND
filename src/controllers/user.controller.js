@@ -74,10 +74,10 @@ username,
     // Debugging: Log the incoming request body
     console.log("Incoming request body:", req.body);
     
-    const { email, username, password } = req.body;
+    const { username, password } = req.body;
     
     // Validation - check if either username or email exists
-    if (!username && !email) {
+    if (!username) {
         throw new ApiError(400, "username or email is required");
     }
 
