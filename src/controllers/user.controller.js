@@ -83,7 +83,7 @@ username,
 
     // Find user by username or email
     const user = await User.findOne({
-        $or: [{ username }, { email }]
+        $or: [{ username }]
     });
 
     if (!user) {
