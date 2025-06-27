@@ -33,7 +33,7 @@ return {accesstoken,refreshtoken}
     }
 }
 const registerUser = asyncHandler(async (req, res) => {
-  const { fullName, email, password } = req.body;
+  const { fullName,username, email, password } = req.body;
 
 
 
