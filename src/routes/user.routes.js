@@ -31,7 +31,8 @@ import { verifyJWT } from '../middleware/auth.middleware.js';
 // comment out multer for now
 // import upload from '../middleware/upload.middleware.js';
 import cors from "cors";
-import app from "../app.js"
+import { app } from "../app.js"; // ✅ Named import
+
 
 const router = express.Router();
 app.use(cors()); // ✅ MUST be before your routes
