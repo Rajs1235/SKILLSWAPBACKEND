@@ -106,7 +106,7 @@ router.delete('/drop-target-index', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
-router.post('/onboarding', authMiddleware, async (req, res) => {
+router.post('/onboarding', async (req, res) => {
   try {
     const { skills, bio, goals } = req.body;
     const userId = req.user.id;
