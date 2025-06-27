@@ -396,6 +396,33 @@ const knownASet = new Set(knownA.flatMap(d => d.skills.map(s => s.skill)));
     videoRoomId
   }, "Match created and room IDs generated"));
 });
+const updateProfileController = async (req, res) => {
+  try {
+    const userId = req.user._id; // Make sure you're using auth middleware
+    const { goals, onboardingComplete, ...rest } = req.body;
+
+    const updated = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          goals,
+          onboardingComplete,
+          ...rest,
+        },
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Profile updated successfully', user: updated });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 const getKnownSkills=asyncHandler(async(req,res)=>{
       const known = await KnownSkill.findOne({ userId: req.user._id });
       if(!known) {
@@ -571,36 +598,6 @@ const createConversation = asyncHandler(async (req, res) => {
     success: true,
   });
 });
-
-const updateProfileController = async (req, res) => {
-  try {
-    const userId = req.user.id; // assuming you're using JWT middleware to set req.user
-    const { goals, onboardingComplete, ...rest } = req.body;
-
-    const updatedData = {
-      ...rest,
-      goals,
-      onboardingComplete,
-    };
-
-    const user = await User.findByIdAndUpdate(userId, updatedData, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.status(200).json({
-      message: 'Profile updated successfully',
-      user,
-    });
-  } catch (error) {
-    console.error('Update error:', error);
-    res.status(500).json({ message: 'Server error while updating profile' });
-  }
-};
 
 export { registerUser,
     loginUser,
