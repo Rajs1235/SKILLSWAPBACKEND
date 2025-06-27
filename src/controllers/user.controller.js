@@ -77,7 +77,7 @@ username,
     const { username, password } = req.body;
     
     // Validation - check if either username or email exists
-    if (!username) {
+    if (!username ||!password) {
         throw new ApiError(400, "username or email is required");
     }
 
