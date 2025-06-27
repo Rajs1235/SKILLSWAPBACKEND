@@ -33,7 +33,9 @@ return {accesstoken,refreshtoken}
     }
 }
 const registerUser = asyncHandler(async (req, res) => {
-    const { email, username, password } = req.body;
+  const { fullName, email, password } = req.body;
+
+
 
     // Step 1: Validate input (no fullName or avatar for now)
     if ([email, username, password].some(field => !field?.trim())) {
@@ -50,11 +52,11 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Step 3: Create user (no avatar, no cover image)
-    const user = await User.create({
-        email,
-        username: username.toLowerCase(),
-        password
-    });
+ const user = await User.create({
+  fullName, // ✅ now included
+  email,
+  password
+});
 
     const createdUser = await User.findById(user._id).select("-password -refreshToken");
 
