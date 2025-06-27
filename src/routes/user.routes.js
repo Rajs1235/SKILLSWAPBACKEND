@@ -33,6 +33,9 @@ import { verifyJWT } from '../middleware/auth.middleware.js';
 import cors from "cors";
 import { app } from "../app.js"; // ✅ Named import
 
+const { updateProfileController } = require('../controllers/userController');
+
+// Profile update route
 
 const router = express.Router();
 // ✅ MUST be before your routes
@@ -41,7 +44,7 @@ const router = express.Router();
 
 // 💥 TEMP: Simplified register route WITHOUT avatar/cover upload
 router.post("/register", registerUser);
-
+router.put('/profile', updateProfileController);
 // keep this — login doesn't need change
 router.post("/login", loginUser);
 router.post("/refresh-token", refreshAccessToken);
