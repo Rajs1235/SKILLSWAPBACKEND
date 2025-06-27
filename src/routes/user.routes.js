@@ -30,9 +30,11 @@ import mongoose from 'mongoose';
 import { verifyJWT } from '../middleware/auth.middleware.js';
 // comment out multer for now
 // import upload from '../middleware/upload.middleware.js';
+import cors from "cors";
+
 
 const router = express.Router();
-
+app.use(cors()); // ✅ MUST be before your routes
 
 // ------------------- AUTH ROUTES -------------------
 
