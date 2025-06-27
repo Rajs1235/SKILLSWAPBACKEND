@@ -572,6 +572,35 @@ const createConversation = asyncHandler(async (req, res) => {
   });
 });
 
+const updateProfileController = async (req, res) => {
+  try {
+    const userId = req.user.id; // assuming you're using JWT middleware to set req.user
+    const { goals, onboardingComplete, ...rest } = req.body;
+
+    const updatedData = {
+      ...rest,
+      goals,
+      onboardingComplete,
+    };
+
+    const user = await User.findByIdAndUpdate(userId, updatedData, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({
+      message: 'Profile updated successfully',
+      user,
+    });
+  } catch (error) {
+    console.error('Update error:', error);
+    res.status(500).json({ message: 'Server error while updating profile' });
+  }
+};
 
 export { registerUser,
     loginUser,
@@ -591,6 +620,7 @@ getUserProgress,
 updateUserProgress,
 getUserBadges,
 awardBadge,
+updateProfileController,
 getUserConversations,
 getMessages,
 sendMessage,
