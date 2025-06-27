@@ -75,4 +75,4 @@ console.log(`You have a new match with ${from}`);
     }
   });
 });
-export {app,server};
+export default {app,server};
