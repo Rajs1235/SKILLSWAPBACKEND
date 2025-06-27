@@ -571,28 +571,27 @@ const createConversation = asyncHandler(async (req, res) => {
     success: true,
   });
 });
-const updateProfileController = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { goals, onboardingComplete } = req.body;
+ const updateProfileController = asyncHandler(async (req, res) => {
+  const userId = req.user?._id;
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { goals, onboardingComplete },
-      { new: true }
-    );
-
-    if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.status(200).json({ message: 'Profile updated', user: updatedUser });
-  } catch (error) {
-    console.error('Update error:', error);
-    res.status(500).json({ message: 'Server error' });
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized: User ID missing");
   }
-};
 
+  const { goals, onboardingComplete } = req.body;
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { goals, onboardingComplete },
+    { new: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Profile updated successfully",
+    user: updatedUser,
+  });
+});
 export { registerUser,
     loginUser,
     logoutUser,
