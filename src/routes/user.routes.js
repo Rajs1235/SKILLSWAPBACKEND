@@ -1,31 +1,33 @@
 import express from 'express';
 import {
+  registerUser,
   loginUser,
   logoutUser,
-  registerUser,
   refreshAccessToken,
   changeCurrentPassword,
   getcurrentUser,
   updateAccountDetails,
+  updateUserAvatar,
+  updateUserCoverImage,
   getMatchesForUser,
   addMatch,
   getKnownSkills,
   addKnownSkill,
   getTargetSkills,
-  updateUserAvatar,
-  updateUserCoverImage,
-  addTargetSkill,
   getUserProgress,
+  getProfileController, // ✅ Add this
   updateUserProgress,
   getUserBadges,
   awardBadge,
+  updateProfileController,
   getUserConversations,
   getMessages,
   sendMessage,
-  updateProfileController ,
+  addTargetSkill,
   getTimeStats,
   updateTime
-} from '../controllers/user.controller.js';
+} from "../controllers/user.controller.js"; // ✅ Make sure the path is correct
+
 
 import mongoose from 'mongoose';
 import { verifyJWT } from '../middleware/auth.middleware.js';
