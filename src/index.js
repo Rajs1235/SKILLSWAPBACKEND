@@ -1,7 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 import connectDB from "./db/index.js";
-import { server } from "app.js";
+import { server } from "./app.js"; // ✅ CORRECT
+
 
 
 
