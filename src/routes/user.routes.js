@@ -43,7 +43,7 @@ const router = express.Router();
 
 // 💥 TEMP: Simplified register route WITHOUT avatar/cover upload
 router.post("/register", registerUser);
-
+router.get('/profile', verifyJWT, getProfileController);
 router.put('/profile', verifyJWT, updateProfileController);
 // keep this — login doesn't need change
 router.post("/login", loginUser);
