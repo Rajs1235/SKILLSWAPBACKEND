@@ -34,8 +34,6 @@ import { verifyJWT } from '../middleware/auth.middleware.js';
 import cors from "cors";
 import { app } from "../app.js"; // ✅ Named import
 
-const { updateProfileController } = require('../controllers/userController');
-
 // Profile update route
 
 const router = express.Router();
