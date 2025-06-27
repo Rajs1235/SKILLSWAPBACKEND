@@ -106,6 +106,23 @@ router.delete('/drop-target-index', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+router.post('/onboarding', authMiddleware, async (req, res) => {
+  try {
+    const { skills, bio, goals } = req.body;
+    const userId = req.user.id;
+
+    await User.findByIdAndUpdate(userId, {
+      skills,
+      bio,
+      goals,
+      onboardingComplete: true,
+    });
+
+    res.status(200).json({ message: "Onboarding completed" });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 router.delete("/drop-targetskills-index", async (req, res) => {
   try {
