@@ -630,6 +630,20 @@ const getProfileController = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
+// controllers/user.controller.js
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}, '-password'); // exclude password
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch users." });
+  }
+};
+
+// routes/user.routes.js
+import { getAllUsers } from "../controllers/user.controller.js";
+
+router.get('/users/all', authenticateUser, getAllUsers);
 
 export { registerUser,
     loginUser,
@@ -644,6 +658,7 @@ getMatchesForUser,
 addMatch,
 getKnownSkills,
 addKnownSkill,
+getAllUsers,
 getTargetSkills,
 getUserProgress,
 getProfileController,
