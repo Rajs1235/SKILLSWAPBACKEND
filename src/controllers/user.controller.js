@@ -571,7 +571,7 @@ const createConversation = asyncHandler(async (req, res) => {
     success: true,
   });
 });
-export const updateProfileController = async (req, res) => {
+const updateProfileController = async (req, res) => {
   try {
     const userId = req.user?._id;
 
