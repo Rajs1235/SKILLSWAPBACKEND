@@ -33,7 +33,9 @@ return {accesstoken,refreshtoken}
     }
 }
 const registerUser = asyncHandler(async (req, res) => {
-    const { email, username, password } = req.body;
+  const { fullName,username, email, password } = req.body;
+
+
 
     // Step 1: Validate input (no fullName or avatar for now)
     if ([email, username, password].some(field => !field?.trim())) {
@@ -50,11 +52,12 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Step 3: Create user (no avatar, no cover image)
-    const user = await User.create({
-        email,
-        username: username.toLowerCase(),
-        password
-    });
+ const user = await User.create({
+username,
+  fullName, // ✅ now included
+  email,
+  password
+});
 
     const createdUser = await User.findById(user._id).select("-password -refreshToken");
 
@@ -71,16 +74,16 @@ const registerUser = asyncHandler(async (req, res) => {
     // Debugging: Log the incoming request body
     console.log("Incoming request body:", req.body);
     
-    const { email, username, password } = req.body;
+    const { username, password } = req.body;
     
     // Validation - check if either username or email exists
-    if (!username && !email) {
+    if (!username ||!password) {
         throw new ApiError(400, "username or email is required");
     }
 
     // Find user by username or email
     const user = await User.findOne({
-        $or: [{ username }, { email }]
+        $or: [{ username }]
     });
 
     if (!user) {
@@ -568,8 +571,38 @@ const createConversation = asyncHandler(async (req, res) => {
     success: true,
   });
 });
+ const updateProfileController = asyncHandler(async (req, res) => {
+  const userId = req.user?._id;
 
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized: User ID missing");
+  }
 
+  const { goals, onboardingComplete } = req.body;
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { goals, onboardingComplete },
+    { new: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Profile updated successfully",
+    user: updatedUser,
+  });
+});
+ const getProfileController = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('firstName lastName role learnSkills goals');
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 export { registerUser,
     loginUser,
     logoutUser,
@@ -585,9 +618,11 @@ getKnownSkills,
 addKnownSkill,
 getTargetSkills,
 getUserProgress,
+getProfileController,
 updateUserProgress,
 getUserBadges,
 awardBadge,
+updateProfileController,
 getUserConversations,
 getMessages,
 sendMessage,

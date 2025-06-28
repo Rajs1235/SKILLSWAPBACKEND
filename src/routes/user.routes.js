@@ -1,44 +1,53 @@
 import express from 'express';
 import {
+  registerUser,
   loginUser,
   logoutUser,
-  registerUser,
   refreshAccessToken,
   changeCurrentPassword,
   getcurrentUser,
   updateAccountDetails,
+  updateUserAvatar,
+  updateUserCoverImage,
   getMatchesForUser,
   addMatch,
   getKnownSkills,
   addKnownSkill,
   getTargetSkills,
-  updateUserAvatar,
-  updateUserCoverImage,
-  addTargetSkill,
   getUserProgress,
+  getProfileController, // ✅ Add this
   updateUserProgress,
   getUserBadges,
   awardBadge,
+  updateProfileController,
   getUserConversations,
   getMessages,
   sendMessage,
+  addTargetSkill,
   getTimeStats,
   updateTime
-} from '../controllers/user.controller.js';
+} from "../controllers/user.controller.js"; // ✅ Make sure the path is correct
+
 
 import mongoose from 'mongoose';
 import { verifyJWT } from '../middleware/auth.middleware.js';
 // comment out multer for now
 // import upload from '../middleware/upload.middleware.js';
+import cors from "cors";
+import { app } from "../app.js"; // ✅ Named import
+
+// Profile update route
 
 const router = express.Router();
-
+// ✅ MUST be before your routes
 
 // ------------------- AUTH ROUTES -------------------
 
 // 💥 TEMP: Simplified register route WITHOUT avatar/cover upload
 router.post("/register", registerUser);
 
+router.put('/profile', verifyJWT, updateProfileController);
+router.get('/profile', verifyJWT, getProfileController);
 // keep this — login doesn't need change
 router.post("/login", loginUser);
 router.post("/refresh-token", refreshAccessToken);
@@ -102,6 +111,23 @@ router.delete('/drop-target-index', async (req, res) => {
     res.status(200).json({ success: true, message: 'Index dropped successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+});
+router.post('/onboarding', async (req, res) => {
+  try {
+    const { skills, bio, goals } = req.body;
+    const userId = req.user.id;
+
+    await User.findByIdAndUpdate(userId, {
+      skills,
+      bio,
+      goals,
+      onboardingComplete: true,
+    });
+
+    res.status(200).json({ message: "Onboarding completed" });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
   }
 });
 
