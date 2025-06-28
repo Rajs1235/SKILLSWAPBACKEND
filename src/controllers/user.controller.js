@@ -594,13 +594,16 @@ const createConversation = asyncHandler(async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: 'Profile update failed', error: err.message });
   }
-};
-const getProfileController = async (req, res) => {
+};const getProfileController = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select(
       'email username firstName lastName skills role matches'
     );
-    
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
     res.status(200).json({
       success: true,
       data: {
@@ -608,9 +611,10 @@ const getProfileController = async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Failed to fetch user profile" });
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
+
 export { registerUser,
     loginUser,
     logoutUser,
