@@ -571,30 +571,39 @@ const createConversation = asyncHandler(async (req, res) => {
     success: true,
   });
 });
- const updateProfileController = async (req, res) => {
+export const updateProfileController = async (req, res) => {
   try {
-    const updates = {
-      firstName: req.body.firstName,
-      lastName: req.body.lastName,
-      skills: req.body.skills,
-      role: req.body.role,
-      onboardingComplete: req.body.onboardingComplete
-    };
+    const userId = req.user?._id;
 
-    const user = await User.findByIdAndUpdate(req.user.id, updates, {
-      new: true,
-      runValidators: true,
-    });
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: User ID not found" });
+    }
+
+    const { firstName, lastName, role, skills, onboardingComplete } = req.body;
+
+    const updated = await User.findByIdAndUpdate(
+      userId,
+      {
+        ...(firstName && { firstName }),
+        ...(lastName && { lastName }),
+        ...(role && { role }),
+        ...(skills && { skills }),
+        ...(onboardingComplete !== undefined && { onboardingComplete })
+      },
+      { new: true }
+    );
 
     res.status(200).json({
       success: true,
-      message: 'Profile updated successfully',
-      user
+      message: "Profile updated",
+      user: updated
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Profile update failed', error: err.message });
+    console.error("Error in updateProfileController:", err);
+    res.status(500).json({ success: false, message: "Internal server error", error: err.message });
   }
-};const getProfileController = async (req, res) => {
+};
+const getProfileController = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select(
       'email username firstName lastName skills role matches'
