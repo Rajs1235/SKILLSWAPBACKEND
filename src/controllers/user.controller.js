@@ -603,13 +603,15 @@ const createConversation = asyncHandler(async (req, res) => {
 
         // Standardize response structure
         const profileData = {
-            _id: user._id,
-            username: user.username,
-            email: user.email,
-            avatar: user.avatar || null,
-            role: user.role,
-            skills: user.skills || [],
-            matches: user.matches || []
+            user: {  // Add 'user' wrapper here
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar || null,
+                role: user.role,
+                skills: user.skills || [],
+                matches: user.matches || []
+            }
         };
 
         return res.status(200).json(
