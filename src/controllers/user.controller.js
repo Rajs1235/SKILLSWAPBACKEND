@@ -631,7 +631,7 @@ const getProfileController = async (req, res) => {
   }
 };
 // controllers/user.controller.js
-export const getAllUsers = async (req, res) => {
+ const getAllUsers = async (req, res) => {
   try {
     const users = await User.find({}, '-password'); // exclude password
     res.status(200).json(users);
