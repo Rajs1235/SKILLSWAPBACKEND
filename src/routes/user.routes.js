@@ -47,7 +47,7 @@ const router = express.Router();
 router.post("/register", registerUser);
 
 router.put('/profile', verifyJWT, updateProfileController);
-router.get('/profile', verifyJWT, getProfileController);
+
 // keep this — login doesn't need change
 router.post("/login", loginUser);
 router.post("/refresh-token", refreshAccessToken);
