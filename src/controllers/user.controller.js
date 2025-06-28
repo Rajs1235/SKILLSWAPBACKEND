@@ -591,22 +591,33 @@ const createConversation = asyncHandler(async (req, res) => {
     message: "Profile updated successfully",
     user: updatedUser,
   });
-});
-const getProfileController = asyncHandler(async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id) // Changed from req.user.id
-      .select("firstName lastName username email role learnSkills goals avatar");
-    
-    if (!user) {
-      throw new ApiError(404, "User not found");
-    }
+});const getProfileController = asyncHandler(async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id)
+            .select("-password -refreshToken") // Exclude sensitive fields
+            .lean(); // Convert to plain JS object
 
-    return res.status(200).json(
-      new ApiResponse(200, user, "User profile fetched successfully")
-    );
-  } catch (error) {
-    throw new ApiError(500, error?.message || "Error fetching profile");
-  }
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+
+        // Standardize response structure
+        const profileData = {
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            avatar: user.avatar || null,
+            role: user.role,
+            skills: user.skills || [],
+            matches: user.matches || []
+        };
+
+        return res.status(200).json(
+            new ApiResponse(200, profileData, "Profile fetched successfully")
+        );
+    } catch (error) {
+        throw new ApiError(500, error?.message || "Profile load failed");
+    }
 });
 export { registerUser,
     loginUser,
