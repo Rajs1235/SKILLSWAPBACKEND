@@ -634,4 +634,4 @@ sendMessage,
 addTargetSkill,
 getTimeStats,
 updateTime
-};similarly clean it up so that all extra content is removed
+};
