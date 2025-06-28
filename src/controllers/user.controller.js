@@ -592,7 +592,7 @@ const createConversation = asyncHandler(async (req, res) => {
     user: updatedUser,
   });
 });
-export const getProfileController = async (req, res) => {
+const getProfileController = async (req, res) => {
   console.log("➡️ /users/profile route hit");
   try {
     const user = await User.findById(req.user.id).select("firstName lastName role learnSkills goals");
