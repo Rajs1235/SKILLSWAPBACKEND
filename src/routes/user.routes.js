@@ -41,6 +41,8 @@ router.post("/change-password", verifyJWT, changeCurrentPassword);
 // =================== PROFILE ROUTES ===================
 router.get('/profile', verifyJWT, getProfileController);
 router.put('/profile', verifyJWT, updateProfileController);
+router.post('/profile', verifyJWT, updateProfileController); // for onboarding
+
 router.get("/current-user", verifyJWT, getcurrentUser);
 router.patch("/update-details", verifyJWT, updateAccountDetails);
 
