@@ -46,6 +46,7 @@ router.post("/logout", verifyJWT, logoutUser);
 router.post("/change-password", verifyJWT, changeCurrentPassword);
 
 // ------------------- USER -------------------
+router.get('/profile', verifyJWT, getProfileController);
 
 router.get("/current-user", verifyJWT, getcurrentUser);
 router.patch("/update-details", verifyJWT, updateAccountDetails);
