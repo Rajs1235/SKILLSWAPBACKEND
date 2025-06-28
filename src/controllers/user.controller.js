@@ -579,6 +579,10 @@ const updateProfileController = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized: User ID not found" });
     }
 
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({ message: "Invalid request body" });
+    }
+
     const { firstName, lastName, role, skills, onboardingComplete } = req.body;
 
     const updated = await User.findByIdAndUpdate(
@@ -588,21 +592,26 @@ const updateProfileController = async (req, res) => {
         ...(lastName && { lastName }),
         ...(role && { role }),
         ...(skills && { skills }),
-        ...(onboardingComplete !== undefined && { onboardingComplete })
+        ...(onboardingComplete !== undefined && { onboardingComplete }),
       },
       { new: true }
     );
 
+    if (!updated) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     res.status(200).json({
       success: true,
       message: "Profile updated",
-      user: updated
+      user: updated,
     });
   } catch (err) {
     console.error("Error in updateProfileController:", err);
     res.status(500).json({ success: false, message: "Internal server error", error: err.message });
   }
 };
+
 const getProfileController = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select(
