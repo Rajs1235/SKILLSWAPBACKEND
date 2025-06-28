@@ -15,7 +15,7 @@ import {
   addKnownSkill,
   getTargetSkills,
   getUserProgress,
-  getProfileController, // ✅ Add this
+  getProfileController,
   updateUserProgress,
   getUserBadges,
   awardBadge,
@@ -26,51 +26,33 @@ import {
   addTargetSkill,
   getTimeStats,
   updateTime
-} from "../controllers/user.controller.js"; // ✅ Make sure the path is correct
-
-
-import mongoose from 'mongoose';
+} from "../controllers/user.controller.js";
 import { verifyJWT } from '../middleware/auth.middleware.js';
-// comment out multer for now
-// import upload from '../middleware/upload.middleware.js';
-import cors from "cors";
-import { app } from "../app.js"; // ✅ Named import
-
-// Profile update route
 
 const router = express.Router();
-// ✅ MUST be before your routes
 
-// ------------------- AUTH ROUTES -------------------
-
-// 💥 TEMP: Simplified register route WITHOUT avatar/cover upload
+// =================== AUTH ROUTES ===================
 router.post("/register", registerUser);
-
-router.put('/profile', verifyJWT, updateProfileController);
-
-// keep this — login doesn't need change
 router.post("/login", loginUser);
 router.post("/refresh-token", refreshAccessToken);
 router.post("/logout", verifyJWT, logoutUser);
 router.post("/change-password", verifyJWT, changeCurrentPassword);
 
-// ------------------- USER -------------------
+// =================== PROFILE ROUTES ===================
 router.get('/profile', verifyJWT, getProfileController);
-
+router.put('/profile', verifyJWT, updateProfileController);
 router.get("/current-user", verifyJWT, getcurrentUser);
 router.patch("/update-details", verifyJWT, updateAccountDetails);
 
-// avatar/cover routes only if re-enabled
+// =================== MEDIA ROUTES ===================
 // router.patch("/avatar", verifyJWT, upload.single("avatar"), updateUserAvatar);
 // router.patch("/cover", verifyJWT, upload.single("coverImage"), updateUserCoverImage);
 
-// ------------------- MATCHES -------------------
-
+// =================== MATCHING ROUTES ===================
 router.get("/matches", verifyJWT, getMatchesForUser);
 router.post("/matches/:username", verifyJWT, addMatch);
 
-// ------------------- SKILLS -------------------
-
+// =================== SKILLS ROUTES ===================
 router.route('/skills/known')
   .get(verifyJWT, getKnownSkills)
   .post(verifyJWT, addKnownSkill);
@@ -79,81 +61,23 @@ router.route('/skills/target')
   .get(verifyJWT, getTargetSkills)
   .post(verifyJWT, addTargetSkill);
 
-// ------------------- PROGRESS -------------------
-
+// =================== PROGRESS ROUTES ===================
 router.route('/progress')
   .get(verifyJWT, getUserProgress)
   .patch(verifyJWT, updateUserProgress);
 
-// ------------------- BADGES -------------------
-
+// =================== BADGES ROUTES ===================
 router.route('/badges')
   .get(verifyJWT, getUserBadges)
   .post(verifyJWT, awardBadge);
 
-// ------------------- CHAT -------------------
-
+// =================== MESSAGING ROUTES ===================
 router.get('/conversations', verifyJWT, getUserConversations);
 router.get('/messages/:conversationId', verifyJWT, getMessages);
 router.post('/messages', verifyJWT, sendMessage);
-router.post('/conversations', verifyJWT, getUserConversations);
 
-// ------------------- TIME TRACKER -------------------
-
+// =================== TIME TRACKING ROUTES ===================
 router.get('/time', verifyJWT, getTimeStats);
 router.patch('/time', verifyJWT, updateTime);
-
-// ------------------- INDEX UTILITY ROUTES (dev only) -------------------
-
-router.delete('/drop-target-index', async (req, res) => {
-  try {
-    await mongoose.connection.db.collection('targetskills').dropIndex('username_1');
-    res.status(200).json({ success: true, message: 'Index dropped successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-router.post('/onboarding', async (req, res) => {
-  try {
-    const { skills, bio, goals } = req.body;
-    const userId = req.user.id;
-
-    await User.findByIdAndUpdate(userId, {
-      skills,
-      bio,
-      goals,
-      onboardingComplete: true,
-    });
-
-    res.status(200).json({ message: "Onboarding completed" });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-router.delete("/drop-targetskills-index", async (req, res) => {
-  try {
-    await mongoose.connection.db.collection("targetskills").dropIndex("username_1");
-    res.status(200).json({ success: true, message: "targetskills index dropped" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-router.get("/targetskills-indexes", async (req, res) => {
-  const indexes = await mongoose.connection.db
-    .collection("targetskills")
-    .indexes();
-  res.status(200).json(indexes);
-});
-
-router.delete("/drop-knownskills-index", async (req, res) => {
-  try {
-    await mongoose.connection.db.collection("knownskills").dropIndex("username_1");
-    res.status(200).json({ success: true, message: "Index dropped" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 
 export default router;
