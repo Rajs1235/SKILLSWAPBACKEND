@@ -592,19 +592,22 @@ const createConversation = asyncHandler(async (req, res) => {
     user: updatedUser,
   });
 });
-const getProfileController = async (req, res) => {
-  console.log("➡️ /users/profile route hit");
+const getProfileController = asyncHandler(async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("firstName lastName role learnSkills goals");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const user = await User.findById(req.user._id) // Changed from req.user.id
+      .select("firstName lastName username email role learnSkills goals avatar");
+    
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
 
-    res.status(200).json({ user });
+    return res.status(200).json(
+      new ApiResponse(200, user, "User profile fetched successfully")
+    );
   } catch (error) {
-    console.error("❌ Error fetching profile:", error);
-    res.status(500).json({ message: "Server error" });
+    throw new ApiError(500, error?.message || "Error fetching profile");
   }
-};
-
+});
 export { registerUser,
     loginUser,
     logoutUser,
