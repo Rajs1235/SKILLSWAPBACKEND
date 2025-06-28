@@ -591,36 +591,22 @@ const createConversation = asyncHandler(async (req, res) => {
     message: "Profile updated successfully",
     user: updatedUser,
   });
-});const getProfileController = asyncHandler(async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id)
-            .select("-password -refreshToken") // Exclude sensitive fields
-            .lean(); // Convert to plain JS object
-
-        if (!user) {
-            throw new ApiError(404, "User not found");
-        }
-
-        // Standardize response structure
-        const profileData = {
-            user: {  // Add 'user' wrapper here
-                _id: user._id,
-                username: user.username,
-                email: user.email,
-                avatar: user.avatar || null,
-                role: user.role,
-                skills: user.skills || [],
-                matches: user.matches || []
-            }
-        };
-
-        return res.status(200).json(
-            new ApiResponse(200, profileData, "Profile fetched successfully")
-        );
-    } catch (error) {
-        throw new ApiError(500, error?.message || "Profile load failed");
-    }
-});
+});const getProfileController = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select(
+      'email username firstName lastName skills role matches'
+    );
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        user
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch user profile" });
+  }
+};
 export { registerUser,
     loginUser,
     logoutUser,
