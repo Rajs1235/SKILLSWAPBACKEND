@@ -16,6 +16,7 @@ import {
   getTargetSkills,
   getUserProgress,
   getProfileController,
+  getAllUsers ,
   updateUserProgress,
   getUserBadges,
   awardBadge,
@@ -37,6 +38,7 @@ router.post("/login", loginUser);
 router.post("/refresh-token", refreshAccessToken);
 router.post("/logout", verifyJWT, logoutUser);
 router.post("/change-password", verifyJWT, changeCurrentPassword);
+router.get('/users/all', authenticateUser, getAllUsers);
 
 // =================== PROFILE ROUTES ===================
 router.get('/profile', verifyJWT, getProfileController);
