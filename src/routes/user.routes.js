@@ -38,7 +38,7 @@ router.post("/login", loginUser);
 router.post("/refresh-token", refreshAccessToken);
 router.post("/logout", verifyJWT, logoutUser);
 router.post("/change-password", verifyJWT, changeCurrentPassword);
-router.get('/users/all', authenticateUser, getAllUsers);
+router.get('/users/all', verifyJWT, getAllUsers);
 
 // =================== PROFILE ROUTES ===================
 router.get('/profile', verifyJWT, getProfileController);
@@ -74,6 +74,7 @@ router.route('/progress')
 router.route('/badges')
   .get(verifyJWT, getUserBadges)
   .post(verifyJWT, awardBadge);
+
 
 // =================== MESSAGING ROUTES ===================
 router.get('/conversations', verifyJWT, getUserConversations);
