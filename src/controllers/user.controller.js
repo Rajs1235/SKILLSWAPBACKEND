@@ -594,7 +594,7 @@ const createConversation = asyncHandler(async (req, res) => {
 });
  const getProfileController = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('firstName lastName role learnSkills goals');
+    const user = await User.findById(req.user.id).select('fullName userName  learnSkills goals');
     if (!user) return res.status(404).json({ message: "User not found" });
 
     res.status(200).json(user);
