@@ -611,11 +611,10 @@ const updateProfileController = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error", error: err.message });
   }
 };
-
 const getProfileController = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select(
-      'email username firstName lastName skills role matches'
+    const user = await User.findById(req.user._id).select(
+      'email username firstName lastName skills role matches avatar'
     );
 
     if (!user) {
@@ -624,11 +623,10 @@ const getProfileController = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: {
-        user
-      }
+      data: { user },
     });
   } catch (err) {
+    console.error("Error in getProfileController:", err);
     res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
