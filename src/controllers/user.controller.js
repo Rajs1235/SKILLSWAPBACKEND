@@ -571,27 +571,31 @@ const createConversation = asyncHandler(async (req, res) => {
     success: true,
   });
 });
- const updateProfileController = asyncHandler(async (req, res) => {
-  const userId = req.user?._id;
+ const updateProfileController = async (req, res) => {
+  try {
+    const updates = {
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      skills: req.body.skills,
+      role: req.body.role,
+      onboardingComplete: req.body.onboardingComplete
+    };
 
-  if (!userId) {
-    throw new ApiError(401, "Unauthorized: User ID missing");
+    const user = await User.findByIdAndUpdate(req.user.id, updates, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Profile update failed', error: err.message });
   }
-
-  const { goals, onboardingComplete } = req.body;
-
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    { goals, onboardingComplete },
-    { new: true }
-  );
-
-  res.status(200).json({
-    success: true,
-    message: "Profile updated successfully",
-    user: updatedUser,
-  });
-});const getProfileController = async (req, res) => {
+};
+const getProfileController = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select(
       'email username firstName lastName skills role matches'
