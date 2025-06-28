@@ -1,210 +1,637 @@
 import { asyncHandler } from "../utils/asynchandler.js";
 import { ApiError } from "../utils/ApiError.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
-import { KnownSkill } from "../models/knownskill.model.js";
-import { TargetSkill } from "../models/targetskill.model.js";
-import { Badge } from "../models/badge.model.js";
-import { Conversation } from "../models/conversation.model.js";
-import { Message } from "../models/message.model.js";
-import { Matches } from "../models/matches.model.js";
-import { Progress } from "../models/progress.model.js";
-import { TimeTracker } from "../models/timetracker.model.js";
 import { uploadonCloudinary } from "../utils/cloudinary.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import {KnownSkill} from "../models/knownskill.model.js"
+import {TargetSkill} from "../models/targetskill.model.js"
+import {Badge} from "../models/badge.model.js"
+import {Conversation} from "../models/conversation.model.js"
+import Message from "../models/message.model.js"
+import {Matches} from "../models/matches.model.js"
+import {Progress} from "../models/progress.model.js"
+import {TimeTracker} from "../models/timetracker.model.js"
 import crypto from 'crypto';
-import jwt from "jsonwebtoken";
-
-const generateAccessAndRefreshToken = async (userId) => {
+import jwt from "jsonwebtoken"
+import upload from "../middleware/upload.middleware.js";
+import mongoose from "mongoose";
+const { JsonWebTokenError }= jwt;
+const generateAccessAndRefreshToken=async(userId)=>{
     try {
-        const user = await User.findById(userId);
-        const accesstoken = user.generateAccessToken();
-        const refreshtoken = user.generateRefreshToken();
+       const user=await User.findById(userId)
+       const accesstoken=user.generateAccessToken()
+       const refreshtoken=user.generateRefreshToken()
 
-        user.refreshToken = refreshtoken;
-        await user.save({ validateBeforeSave: false });
-        return { accesstoken, refreshtoken };
+user.refreshToken=refreshtoken;
+await user.save({validateBeforeSave:false})
+return {accesstoken,refreshtoken}
+
     } catch (error) {
-        throw new ApiError(500, "Failed to generate tokens");
+       console.error("Error in generateAccessAndRefreshToken:", error);
+        throw new ApiError(500,"somethingwentwrong");
+        
     }
-};
-
-// Authentication Controllers
+}
 const registerUser = asyncHandler(async (req, res) => {
-    const { fullName, username, email, password } = req.body;
+  const { fullName,username, email, password } = req.body;
 
+
+
+    // Step 1: Validate input (no fullName or avatar for now)
     if ([email, username, password].some(field => !field?.trim())) {
         throw new ApiError(400, "All fields are required");
     }
 
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) throw new ApiError(409, "User already exists");
+    // Step 2: Check if user already exists
+    const existingUser = await User.findOne({
+        $or: [{ email }, { username }]
+    });
 
-    const user = await User.create({ username, fullName, email, password });
+    if (existingUser) {
+        throw new ApiError(409, "User with email or username already exists");
+    }
+
+    // Step 3: Create user (no avatar, no cover image)
+ const user = await User.create({
+username,
+  fullName, // ✅ now included
+  email,
+  password
+});
+
     const createdUser = await User.findById(user._id).select("-password -refreshToken");
 
-    if (!createdUser) throw new ApiError(500, "Failed to create user");
+    if (!createdUser) {
+        throw new ApiError(500, "Something went wrong while creating user");
+    }
 
     return res.status(201).json(
         new ApiResponse(201, createdUser, "User registered successfully")
     );
 });
 
-const loginUser = asyncHandler(async (req, res) => {
+  const loginUser = asyncHandler(async (req, res) => {
+    // Debugging: Log the incoming request body
+    console.log("Incoming request body:", req.body);
+    
     const { username, password } = req.body;
     
-    if (!username || !password) throw new ApiError(400, "Credentials required");
+    // Validation - check if either username or email exists
+    if (!username ||!password) {
+        throw new ApiError(400, "username or email is required");
+    }
 
-    const user = await User.findOne({ username });
-    if (!user) throw new ApiError(404, "User not found");
+    // Find user by username or email
+    const user = await User.findOne({
+        $or: [{ username }]
+    });
 
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Verify password
     const isPasswordValid = await user.isPasswordCorrect(password);
-    if (!isPasswordValid) throw new ApiError(401, "Invalid credentials");
+    if (!isPasswordValid) {
+        throw new ApiError(401, "Invalid user credentials");
+    }
 
+    // Generate tokens
     const { accesstoken, refreshtoken } = await generateAccessAndRefreshToken(user._id);
+
+    // Get user without sensitive data
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
-    const options = { httpOnly: true, secure: true, sameSite: 'strict' };
+    // Cookie options
+    const options = {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict'
+    };
 
     return res
         .status(200)
         .cookie("accessToken", accesstoken, options)
-        .cookie("refreshToken", refreshtoken, options)
+        .cookie("refreshToken", refreshtoken, options) // Fixed typo: was "refresshToken"
         .json(new ApiResponse(200, {
-            user: loggedInUser,
+            user: loggedInUser.toObject(),
             accesstoken, 
             refreshtoken
-        }, "Login successful"));
+        }, "User logged in successfully"));
 });
 
-const logoutUser = asyncHandler(async (req, res) => {
-    await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } }, { new: true });
-    
-    const options = { httpOnly: true, secure: true, sameSite: 'strict' };
-    
-    return res
-        .status(200)
-        .clearCookie("accessToken", options)
-        .clearCookie("refreshToken", options)
-        .json(new ApiResponse(200, {}, "Logged out successfully"));
-});
-
-// Profile Controllers
-const getcurrentUser = asyncHandler(async (req, res) => {
-    return res.status(200).json(new ApiResponse(200, req.user, "Current user"));
-});
-
-const getProfileController = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user._id)
-        .select("firstName lastName username email role learnSkills goals avatar");
-    
-    if (!user) throw new ApiError(404, "User not found");
-
-    return res.status(200).json(
-        new ApiResponse(200, user, "Profile fetched successfully")
-    );
-});
-
-const updateAccountDetails = asyncHandler(async (req, res) => {
-    const { fullName, email } = req.body;
-    
-    if (!fullName || !email) throw new ApiError(400, "All fields required");
-    if (!/\S+@\S+\.\S+/.test(email)) throw new ApiError(400, "Invalid email");
-
-    const user = await User.findByIdAndUpdate(
-        req.user._id,
-        { $set: { fullName, email } },
-        { new: true }
-    ).select("-password");
-
-    return res.status(200).json(
-        new ApiResponse(200, user, "Profile updated successfully")
-    );
-});
-
-// Skills Controllers
-const getKnownSkills = asyncHandler(async (req, res) => {
-    const known = await KnownSkill.findOne({ userId: req.user._id });
-    return res.status(200).json(
-        new ApiResponse(200, known?.skills || [], "Known skills fetched")
-    );
-});
-
-const addKnownSkill = asyncHandler(async (req, res) => {
-    const { skillName, level } = req.body;
-    
-    if (!skillName || typeof level !== "number") {
-        throw new ApiError(400, "Skill name and level required");
+const logoutUser=asyncHandler(async(req,res)=>{
+await User.findByIdAndUpdate(req.user._id,{
+    $unset:{
+        refreshToken:1//removes field from document
     }
-
-    const skillDoc = await KnownSkill.findOneAndUpdate(
-        { userId: req.user._id },
-        { $addToSet: { skills: { skill: skillName, level } } },
-        { upsert: true, new: true }
-    );
-
-    return res.status(201).json(
-        new ApiResponse(201, skillDoc.skills, "Skill added")
-    );
+},{
+    new:true
+})
+const options={
+    httpOnly:true,
+    secure:true,
+    sameSite:'strict'
+}
+return res
+.status(200)
+.clearCookie("accessToken",options)
+.clearCookie("refreshToken",options)
+.json(new ApiResponse(200,"user loggedout successfully"))
 });
+const refreshAccessToken=asyncHandler(async(req,res)=>{
+   const incomingRefreshToken=req.cookies.refreshToken||req.body.refreshToken
+if(!incomingRefreshToken){
+    throw new ApiError(401,"invalid refresh token")
+}
+const decodedtoken=jwt.verify(
+    incomingRefreshToken,
+    process.env.Refresh_TOKEN_SECRET
+)
+const user=await User.findById(decodedtoken?._id)
+if(!user){
+    throw new ApiError(401,"invalid refresh token")
+}
+if(incomingRefreshToken!==user?.refreshToken){
+     throw new ApiError(401,"expired refresh token")
+}
+const options={
+    httpOnly:true,
+    secure:true
+}
 
-// Matches Controller
-const getMatchesForUser = asyncHandler(async (req, res) => {
-    const [known, target] = await Promise.all([
-        KnownSkill.findOne({ userId: req.user._id }),
-        TargetSkill.findOne({ userId: req.user._id })
-    ]);
+const {accesstoken,refreshtoken:newrefreshtoken}=await generateAccessAndRefreshToken(user._id)
+return res
+.status(200)
+.cookie("accessToken",accesstoken,options)
+.cookie("refreshToken",newrefreshtoken,options)
+.json(new ApiResponse(200,{accesstoken,refreshToken:newrefreshtoken},
+    "access token generated successfully"
+))
 
-    const knownSkills = known?.skills.map(s => s.skill) || [];
-    const targetSkills = target?.skills.map(s => s.skill) || [];
 
-    const allUsers = await User.find({ _id: { $ne: req.user._id } }).lean();
-    const matches = [];
 
-    for (const user of allUsers) {
-        const [userKnown, userTarget] = await Promise.all([
-            KnownSkill.findOne({ userId: user._id }),
-            TargetSkill.findOne({ userId: user._id })
-        ]);
+})
 
-        const teachable = userTarget?.skills.some(s => knownSkills.includes(s.skill));
-        const learnable = userKnown?.skills.some(s => targetSkills.includes(s.skill));
+const changeCurrentPassword=asyncHandler(async(req,res)=>{
+    const {oldpassword,newpassword}=req.body
 
-        if (teachable && learnable) {
-            matches.push({
-                userId: user._id,
-                fullName: user.fullName,
-                username: user.username,
-                avatar: user.avatar,
-                chatRoomId: generateRoomId(req.user.username, user.username),
-                videoRoomId: generateRoomId(req.user._id.toString(), user._id.toString())
-            });
+    const user=await User.findById(req.user?._id)
+const ispasswordcorrect=await user.isPasswordCorrect(oldpassword)
+if(!ispasswordcorrect){
+    throw new ApiError(401,"Invalid old password")
+}
+
+user.password=newpassword
+await user.save({validateBeforeSave:false})
+
+return res.status(200)
+.json(new ApiResponse(200,{},"password changed successfully"))
+
+})
+
+const getcurrentUser=asyncHandler(async(req,res)=>{
+return res
+.status(200)
+.json(new ApiResponse(200,req.user,"current user fetched successfully"))
+})
+ 
+const updateAccountDetails=asyncHandler(async(req,res)=>{
+    const {fullName,email}=req.body
+    if(!fullName || !email){
+        throw new ApiError(400,"fields needed")
+
+    }
+   const user=await User.findByIdAndUpdate(
+    req.user?._id,{
+        $set:{
+            fullName,
+            email:email
         }
+    },{new:true}).select("-password")
+if (!/\S+@\S+\.\S+/.test(email)) throw new ApiError(400, "Invalid email format");
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated successfully"))
+
+})
+
+
+const updateUserAvatar=asyncHandler(async(req,res)=>{
+  const avatarBuffer = req.file?.buffer;
+if (!avatarBuffer) {
+  throw new ApiError(400, "Avatar is required");
+}
+
+const avatar = await uploadonCloudinary(avatarBuffer, "avatars");
+
+if (!avatar.secure_url) {
+  throw new ApiError(400, "Avatar upload failed");
+}
+
+   const user=await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+$set:{
+    avatar:avatar.url
+}
+        },
+        {new:true}
+    ).select("-password")
+
+     
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,user,"image updated")
+    )
+})
+
+const updateUserCoverImage=asyncHandler(async(req,res)=>{
+const coverBuffer = req.file?.buffer;
+if (!coverBuffer) {
+  throw new ApiError(400, "Cover image is required");
+}
+
+const coverImage = await uploadonCloudinary(coverBuffer, "covers");
+
+if (!coverImage.secure_url) {
+  throw new ApiError(400, "Cover image upload failed");
+}
+
+    const user=await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+$set:{
+    coverImage:coverImage.url
+}
+        },
+        {new:true}
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,user,"image updated")
+    )
+})
+const generateRoomId = (a, b) => {
+  const sorted = [a, b].sort(); // ensure consistent order
+  return crypto.createHash('sha256').update(sorted.join('-')).digest('hex').slice(0, 16);
+};
+const getMatchesForUser = asyncHandler(async (req, res) => {
+const known = await KnownSkill.findOne({ userId: req.user._id });
+const target = await TargetSkill.findOne({ userId: req.user._id });
+
+const knownSkillNames = known?.skills.map(s => s.skill) || [];
+const targetSkillNames = target?.skills.map(s => s.skill) || [];
+
+
+  const allUsers = await User.find({ _id: { $ne: req.user._id } }); // exclude self
+
+  const matches = [];
+
+  for (const user of allUsers) {
+ const [userKnownDoc, userTargetDoc] = await Promise.all([
+  KnownSkill.findOne({ userId: user._id }),
+  TargetSkill.findOne({ userId: user._id })
+]);
+
+const userKnownSkills = userKnownDoc?.skills.map(s => s.skill) || [];
+const userTargetSkills = userTargetDoc?.skills.map(s => s.skill) || [];
+
+
+    const skillsTheyCanTeachYou = userKnownSkills.filter(skill => targetSkillNames.includes(skill));
+    const skillsYouCanTeachThem = userTargetSkills.filter(skill => knownSkillNames.includes(skill));
+
+    if (skillsTheyCanTeachYou.length && skillsYouCanTeachThem.length) {
+      const chatRoomId = generateRoomId(req.user.username, user.username);
+      const videoRoomId = generateRoomId(req.user._id.toString(), user._id.toString());
+
+      matches.push({
+        userId: user._id,
+        fullName: user.fullName,
+        username: user.username,
+        avatar: user.avatar,
+chatRoomId,
+videoRoomId 
+      });
     }
+  }
+  await Matches.findOneAndUpdate(
+    { username: req.user.username },
+    {
+      $set:{
+        matches: matches.map(m => m.userId)
+      }
+    },
+    { upsert: true, new: true }
+  )
 
-    await Matches.findOneAndUpdate(
-        { username: req.user.username },
-        { matches: matches.map(m => m.userId) },
-        { upsert: true }
-    );
-
-    return res.status(200).json(new ApiResponse(200, matches, "Matches found"));
+  res.status(200).json(new ApiResponse(200, matches, "Matches fetched"));
 });
 
-// Utility Functions
-const generateRoomId = (a, b) => {
-    const sorted = [a, b].sort();
-    return crypto.createHash('sha256').update(sorted.join('-')).digest('hex').slice(0, 16);
-};
+const addMatch = asyncHandler(async (req, res) => {
+  const userA = req.user; // logged-in user
+  const usernameB = req.params.username; // user to match with
+ const chatRoomId = uuidv4();
+  const videoRoomId = uuidv4();
 
-export {
-    registerUser,
+  if (userA.username === usernameB) {
+    throw new ApiError(400, "You cannot match with yourself");
+  }
+
+  const userB = await User.findOne({ username: usernameB });
+  if (!userB) throw new ApiError(404, "User not found");
+
+  // Get skills for both users
+  const [knownA, targetA, knownB, targetB] = await Promise.all([
+    KnownSkill.find({ userId: userA._id }),
+    TargetSkill.find({ userId: userA._id }),
+    KnownSkill.find({ userId: userB._id }),
+    TargetSkill.find({ userId: userB._id })
+  ]);
+
+const knownASet = new Set(knownA.flatMap(d => d.skills.map(s => s.skill)));
+  const targetASet = new Set(targetA.flatMap(d => d.skills.map(s => s.skill)));
+  const knownBSet = new Set(knownB.flatMap(d => d.skills.map(s => s.skill)));
+  const targetBSet = new Set(targetB.flatMap(d => d.skills.map(s => s.skill)));
+
+  // Match logic
+  const matchedSkills = [];
+  for (let skill of knownASet) {
+    if (targetBSet.has(skill)) matchedSkills.push(skill);
+  }
+  for (let skill of targetASet) {
+    if (knownBSet.has(skill)) matchedSkills.push(skill);
+  }
+
+  if (matchedSkills.length === 0) {
+    throw new ApiError(400, "No skill match found");
+  }
+
+  // Save match in logged-in user's Match document
+  let matchDoc = await Matches.findOne({ username: userA.username });
+
+  if (!matchDoc) {
+    matchDoc = await Matches.create({
+      username: userA.username,
+      matches: [userB._id]
+    });
+  } else if (!matchDoc.matches.includes(userB._id)) {
+    matchDoc.matches.push(userB._id);
+    await matchDoc.save();
+  }
+   req.io?.to(userB._id.toString()).emit("new_match", {
+    from: userA.username,
+    chatRoomId,
+    videoRoomId
+  });
+
+
+  return res.status(201).json(new ApiResponse(201, {
+    matchedWith: userB.username,
+    chatRoomId,
+    videoRoomId
+  }, "Match created and room IDs generated"));
+});
+const getKnownSkills=asyncHandler(async(req,res)=>{
+      const known = await KnownSkill.findOne({ userId: req.user._id });
+      if(!known) {
+        return res.status(200).json(new ApiResponse(200, [], "No known skills found"));
+      }
+    
+     return res.status(200).json(new ApiResponse(200,known.skills,"known skills fetched"))
+});
+const getTargetSkills = asyncHandler(async (req, res) => {
+  const target = await TargetSkill.findOne({ userId: req.user._id });
+  if(!target){
+    return res.status(200).json(new ApiResponse(200, [], "No target skills found"));
+  }
+ return res.status(200).json(new ApiResponse(200, target.skills, "Target skills fetched"));
+});
+const addKnownSkill = asyncHandler(async (req, res) => {
+  let { skillName, level } = req.body;
+
+  if (!skillName || typeof level !== "number") {
+    throw new ApiError(400, "Both skill name and level are required");
+  }
+
+  // Ensure skillName is a string
+  if (Array.isArray(skillName)) {
+    skillName = skillName[0]; // or reject entirely
+  }
+
+  const { _id: userId, username } = req.user;
+
+  let skillDoc = await KnownSkill.findOne({ userId });
+
+  if (!skillDoc) {
+    skillDoc = await KnownSkill.create({
+      userId,
+      username,
+      skills: [{ skill: skillName, level }]
+    });
+  } else {
+    const exists = skillDoc.skills.find((s) => s.skill === skillName);
+    if (exists) throw new ApiError(409, "Skill already added");
+
+    skillDoc.skills.push({ skill: skillName, level });
+    await skillDoc.save();
+  }
+
+  res.status(201).json(new ApiResponse(201, skillDoc.skills, "Skill added successfully"));
+});
+
+const addTargetSkill = asyncHandler(async (req, res) => {
+let { skillName, level } = req.body;
+
+  if (!skillName || typeof level !== "number") {
+    throw new ApiError(400, "Both skill name and level are required");
+  }
+
+  // Ensure skillName is a string
+  if (Array.isArray(skillName)) {
+    skillName = skillName[0]; // or reject entirely
+  }
+
+  const { _id: userId, username } = req.user;
+
+  let skillDoc = await TargetSkill.findOne({ userId });
+
+  if (!skillDoc) {
+    skillDoc = await TargetSkill.create({
+      userId,
+      username,
+      skills: [{ skill: skillName, level }]
+    });
+  } else {
+    const exists = skillDoc.skills.find((s) => s.skill === skillName);
+    if (exists) throw new ApiError(409, "Skill already added");
+
+    skillDoc.skills.push({ skill: skillName, level });
+    await skillDoc.save();
+  }
+
+  res.status(201).json(new ApiResponse(201, skillDoc.skills, "Skill added successfully"));
+});
+const getUserProgress = asyncHandler(async (req, res) => {
+  const progress = await Progress.find({ userId: req.user._id });
+ return res.status(200).json(new ApiResponse(200, progress, "Progress data"));
+});
+const updateUserProgress = asyncHandler(async (req, res) => {
+  const { skillId, percent } = req.body;
+  if(percent<0||percent>100) throw new ApiError(400, "Progress must be between 0–100");
+  const updated = await Progress.findOneAndUpdate(
+    { userId: req.user._id, skillId },
+    { $set: { percent } },
+    { upsert: true, new: true }
+  );
+ return res.status(200).json(new ApiResponse(200, updated, "Progress updated"));
+});
+const getUserBadges=asyncHandler(async(req,res)=>{
+    const badges=await Badge.find({userId:req.user._id})
+  return res.status(200)
+    .json(new ApiResponse(200,badges,"badges fetched"))
+});
+const awardBadge=asyncHandler(async(req,res)=>{
+    const {title,description}=req.body;
+    if(!title)throw new ApiError(400, "Title is required");
+    const badge=await Badge.create({user:req.user._id,title,description});
+   return res.status(201)
+    .json(new ApiResponse(201,badge,"badge awarded"))
+});
+const getUserConversations = asyncHandler(async (req, res) => {
+  const conversations = await Conversation.find({ participants: req.user._id });
+  res.status(200).json(new ApiResponse(200, conversations));
+});
+
+const getMessages = asyncHandler(async (req, res) => {
+  const messages = await Message.find({ conversationId: req.params.conversationId });
+  res.status(200).json(new ApiResponse(200, messages));
+});
+
+const sendMessage = asyncHandler(async (req, res) => {
+  const { conversationId, content } = req.body;
+  if(!conversationId||!content) throw new ApiError(404, "Conversation not found");
+  const message = await Message.create({
+    conversationId,
+    sender: req.user._id,
+    content,
+  });
+
+  res.status(201).json(new ApiResponse(201, message, "Message sent"));
+});
+const getTimeStats = asyncHandler(async (req, res) => {
+  const time = await TimeTracker.findOne({ userId: req.user._id });
+  res.status(200).json(new ApiResponse(200, time));
+});
+const updateTime = asyncHandler(async (req, res) => {
+  const { minutes } = req.body;
+  const time = await TimeTracker.findOneAndUpdate(
+    { userId: req.user._id },
+    { $inc: { totalMinutes: minutes } },
+    { upsert: true, new: true }
+  );
+  res.status(200).json(new ApiResponse(200, time, "Time updated"));
+});
+ 
+const createConversation = asyncHandler(async (req, res) => {
+  const { senderId, receiverId } = req.body;
+
+  if (!senderId || !receiverId) {
+    return res.status(400).json({
+      success: false,
+      message: "Both senderId and receiverId are required.",
+    });
+  }
+
+  let existing = await Conversation.findOne({
+    members: { $all: [senderId, receiverId] },
+  });
+
+  if (existing) {
+    return res.status(200).json({
+      statusCode: 200,
+      data: existing,
+      message: "Conversation already exists",
+      success: true,
+    });
+  }
+
+  const newConversation = await Conversation.create({
+    members: [senderId, receiverId],
+  });
+
+  return res.status(201).json({
+    statusCode: 201,
+    data: newConversation,
+    message: "Conversation created",
+    success: true,
+  });
+});
+ const updateProfileController = asyncHandler(async (req, res) => {
+  const userId = req.user?._id;
+
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized: User ID missing");
+  }
+
+  const { goals, onboardingComplete } = req.body;
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { goals, onboardingComplete },
+    { new: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Profile updated successfully",
+    user: updatedUser,
+  });
+});
+const getProfileController = asyncHandler(async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id) // Changed from req.user.id
+      .select("firstName lastName username email role learnSkills goals avatar");
+    
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    return res.status(200).json(
+      new ApiResponse(200, user, "User profile fetched successfully")
+    );
+  } catch (error) {
+    throw new ApiError(500, error?.message || "Error fetching profile");
+  }
+});
+export { registerUser,
     loginUser,
     logoutUser,
+    refreshAccessToken,
+    changeCurrentPassword,
     getcurrentUser,
-    getProfileController,
     updateAccountDetails,
-    getKnownSkills,
-    addKnownSkill,
-    getMatchesForUser
-    // Export other cleaned-up controllers as needed
-};
+updateUserAvatar,
+updateUserCoverImage,
+getMatchesForUser,
+addMatch,
+getKnownSkills,
+addKnownSkill,
+getTargetSkills,
+getUserProgress,
+getProfileController,
+updateUserProgress,
+getUserBadges,
+awardBadge,
+updateProfileController,
+getUserConversations,
+getMessages,
+sendMessage,
+addTargetSkill,
+getTimeStats,
+updateTime
+};similarly clean it up so that all extra content is removed
