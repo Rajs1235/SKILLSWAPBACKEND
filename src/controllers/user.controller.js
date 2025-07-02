@@ -671,6 +671,33 @@ import { getAllUsers } from "../controllers/user.controller.js";
 router.get('/users/all', authenticateUser, getAllUsers);
 // controllers/matchListing.controller.js
 
+// controllers/match.controller.js
+export const addMatchController = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { matchId } = req.body;
+
+    if (!matchId) {
+      return res.status(400).json({ message: "Match ID is required" });
+    }
+
+    const existing = await Matches.findOne({ username: req.user.username });
+
+    if (existing) {
+      if (!existing.matches.includes(matchId)) {
+        existing.matches.push(matchId);
+        await existing.save();
+      }
+    } else {
+      await Matches.create({ username: req.user.username, matches: [matchId] });
+    }
+
+    res.status(200).json({ message: "User added to your matches" });
+  } catch (error) {
+    console.error("Error adding match:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 export const getAllListingsController = async (req, res) => {
   try {
