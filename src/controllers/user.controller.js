@@ -665,9 +665,6 @@ const getProfileController = async (req, res) => {
   }
 };
 
-// routes/user.routes.js
-import { getAllUsers } from "../controllers/user.controller.js";
-
 router.get('/users/all', authenticateUser, getAllUsers);
 // controllers/matchListing.controller.js
 
