@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadonCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { MatchListing } from "../models/matchListing.model.js";
 import {KnownSkill} from "../models/knownskill.model.js"
 import {TargetSkill} from "../models/targetskill.model.js"
 import {Badge} from "../models/badge.model.js"
@@ -10,8 +11,11 @@ import {Conversation} from "../models/conversation.model.js"
 import Message from "../models/message.model.js"
 import {Matches} from "../models/matches.model.js"
 import {Progress} from "../models/progress.model.js"
+import { MatchListing } from "../models/matchListing.model.js";
 import {TimeTracker} from "../models/timetracker.model.js"
 import crypto from 'crypto';
+import { MatchListing } from "../models/matchListing.model.js"; // ✅ Ensure correct path
+
 import jwt from "jsonwebtoken"
 import upload from "../middleware/upload.middleware.js";
 import mongoose from "mongoose";
@@ -585,6 +589,7 @@ const updateProfileController = async (req, res) => {
 
     const { firstName, lastName, role, skills, onboardingComplete } = req.body;
 
+    // ✅ Update the user
     const updated = await User.findByIdAndUpdate(
       userId,
       {
@@ -601,6 +606,21 @@ const updateProfileController = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // ✅ Create or update public match listing if onboarding is complete
+    if (onboardingComplete) {
+      await MatchListing.findOneAndUpdate(
+        { user: userId },
+        {
+          user: userId,
+          name: `${updated.firstName} ${updated.lastName}`,
+          role: updated.role,
+          skills: updated.skills,
+          avatar: updated.avatar || "", // optional if avatar exists in User
+        },
+        { upsert: true, new: true }
+      );
+    }
+
     res.status(200).json({
       success: true,
       message: "Profile updated",
@@ -608,9 +628,14 @@ const updateProfileController = async (req, res) => {
     });
   } catch (err) {
     console.error("Error in updateProfileController:", err);
-    res.status(500).json({ success: false, message: "Internal server error", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: err.message,
+    });
   }
 };
+
 const getProfileController = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select(
@@ -644,6 +669,18 @@ const getProfileController = async (req, res) => {
 import { getAllUsers } from "../controllers/user.controller.js";
 
 router.get('/users/all', authenticateUser, getAllUsers);
+// controllers/matchListing.controller.js
+
+
+export const getAllListingsController = async (req, res) => {
+  try {
+    const listings = await MatchListing.find();
+    res.status(200).json(listings);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching match listings", error: err.message });
+  }
+};
+
 export {
   registerUser,
   loginUser,
