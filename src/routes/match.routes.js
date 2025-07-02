@@ -18,5 +18,7 @@ router.get('/room/:user1/:user2', (req, res) => {
   const roomId = getRoomId(user1, user2);
   res.json({ roomId });
 });
+// routes/match.routes.js
+router.post("/add", authMiddleware, addMatchController);
 
 export default router;
