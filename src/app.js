@@ -8,7 +8,7 @@ import userRoutes from "./routes/user.routes.js";
 import matchRoutes from "./routes/match.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import ChatMessage from "./models/message.model.js";
-import matchListingRoutes from "./routes/MatchListing.routes.js";
+import matchListingRoutes from "./routes/matchListing.routes.js";
 const app = express();
 
 app.use(cors()); 
