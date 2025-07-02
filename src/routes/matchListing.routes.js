@@ -1,6 +1,6 @@
 // src/routes/matchListing.routes.js
 import express from "express";
-import { getAllListingsController } from "../controller.js";
+import { getAllListingsController } from "../user.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js"; // or remove if public
 
 const router = express.Router();
