@@ -665,7 +665,6 @@ const getProfileController = async (req, res) => {
   }
 };
 
-router.get('/users/all', authenticateUser, getAllUsers);
 // controllers/matchListing.controller.js
 
 // controllers/match.controller.js
