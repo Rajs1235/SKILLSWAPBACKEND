@@ -19,6 +19,6 @@ router.get('/room/:user1/:user2', (req, res) => {
   res.json({ roomId });
 });
 // routes/match.routes.js
-router.post("/add", authMiddleware, addMatchController);
+router.post("/add", verifyJWT, addMatchController);
 
 export default router;
