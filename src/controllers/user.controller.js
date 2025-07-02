@@ -574,8 +574,7 @@ const createConversation = asyncHandler(async (req, res) => {
     message: "Conversation created",
     success: true,
   });
-});
-const updateProfileController = async (req, res) => {
+});const updateProfileController = async (req, res) => {
   try {
     const userId = req.user?._id;
 
@@ -607,15 +606,15 @@ const updateProfileController = async (req, res) => {
     }
 
     // ✅ Create or update public match listing if onboarding is complete
-    if (onboardingComplete) {
+    if (updated.onboardingComplete) {
       await MatchListing.findOneAndUpdate(
         { user: userId },
         {
           user: userId,
-          name: `${updated.firstName} ${updated.lastName}`,
+          name: `${updated.firstName || ""} ${updated.lastName || ""}`.trim(),
           role: updated.role,
           skills: updated.skills,
-          avatar: updated.avatar || "", // optional if avatar exists in User
+          avatar: updated.avatar || "", // optional if you support avatars
         },
         { upsert: true, new: true }
       );
