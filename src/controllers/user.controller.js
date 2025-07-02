@@ -695,7 +695,7 @@ export const addMatchController = async (req, res) => {
   }
 };
 
-export default  getAllListingsController = async (req, res) => {
+const getAllListingsController = async (req, res) => {
   try {
     const listings = await MatchListing.find();
     res.status(200).json(listings);
@@ -722,6 +722,7 @@ export {
   getTargetSkills,
   getUserProgress,
   getProfileController,
+    getAllListingsController,
   updateUserProgress,
   getUserBadges,
   awardBadge,
