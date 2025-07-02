@@ -8,7 +8,7 @@ import userRoutes from "./routes/user.routes.js";
 import matchRoutes from "./routes/match.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import ChatMessage from "./models/message.model.js";
-
+import matchListingRoutes from "./routes/matchListing.routes.js";
 const app = express();
 
 app.use(cors()); 
@@ -17,6 +17,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 app.use(express.static("public"));
+
+
+app.use("/api/v1/matchlistings", matchListingRoutes);
 
 // Mount routes
 app.get("/", (req, res) => {
