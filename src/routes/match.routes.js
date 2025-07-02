@@ -1,5 +1,5 @@
 import express from 'express'
-
+  import { verifyJWT } from "../middleware/auth.middleware.js"; 
 import crypto from 'crypto';
 const router = express.Router();
 // Helper to generate consistent room ID between two users
