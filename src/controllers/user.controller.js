@@ -706,7 +706,7 @@ const getAllListingsController = async (req, res) => {
 
 
 // POST /matchlistings
-import MatchListing from "../models/matchListing.model.js";
+
 
 export const createMatchListingController = async (req, res) => {
   try {
