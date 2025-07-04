@@ -7,39 +7,40 @@ import { Server } from "socket.io";
 import userRoutes from "./routes/user.routes.js";
 import matchRoutes from "./routes/match.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
-import ChatMessage from "./models/message.model.js";
 import matchListingRoutes from "./routes/matchListing.routes.js";
+import ChatMessage from "./models/message.model.js";
+
 const app = express();
 
-app.use(cors()); 
-
+// Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 app.use(express.static("public"));
 
-
-app.use("/api/v1/matchlistings", matchListingRoutes);
-
-// Mount routes
+// Routes
 app.get("/", (req, res) => {
   res.send("✅ SkillSwap Backend is running");
 });
 
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/matchlistings", matchListingRoutes);
 app.use("/v1/chat", chatRoutes);
 app.use("/v1/match", matchRoutes);
 
-// Setup HTTP server and Socket.IO
+// Create HTTP server
 const server = http.createServer(app);
+
+// Setup Socket.IO
 const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
   }
 });
-const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:8000");
 
+// Socket.IO logic
 io.on("connection", (socket) => {
   console.log("🔌 A user connected");
 
@@ -52,17 +53,17 @@ io.on("connection", (socket) => {
     socket.leave(roomId);
     console.log(`User ${userId} left room ${roomId}`);
   });
-socket.on("new_match", ({ from, chatRoomId, videoRoomId }) => {
-  // Notify user of new match and optionally auto-connect
-console.log(`You have a new match with ${from}`);
-});
+
+  socket.on("new_match", ({ from, chatRoomId, videoRoomId }) => {
+    console.log(`You have a new match with ${from}`);
+  });
 
   socket.on("send_message", async (msg) => {
     const { roomId, senderId, text, senderName } = msg;
 
     try {
       const saved = await ChatMessage.create({
-        conversation: roomId, // schema field name
+        conversation: roomId,
         sender: senderId,
         content: text
       });
@@ -76,4 +77,6 @@ console.log(`You have a new match with ${from}`);
     }
   });
 });
-export  {app,server};
+
+// Export
+export { app, server };
