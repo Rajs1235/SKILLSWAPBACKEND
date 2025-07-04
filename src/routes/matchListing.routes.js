@@ -1,11 +1,14 @@
 // src/routes/matchListing.routes.js
 import express from "express";
-import { getAllListingsController } from "../controllers/user.controller.js";
-import { verifyJWT } from "../middleware/auth.middleware.js"; // or remove if public
+import { getAllListingsController, createMatchListingController } from "../controllers/user.controller.js";
+import { verifyJWT } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
+// Get all match listings
 router.get("/", verifyJWT, getAllListingsController);
-// or: router.get("/", getAllListingsController);
+
+// ✅ Add this POST route to support new listing creation
+router.post("/", verifyJWT, createMatchListingController);
 
 export default router;
