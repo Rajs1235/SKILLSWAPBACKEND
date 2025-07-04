@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadonCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { MatchListing } from "../models/matchListing.model.js";
+import MatchListing from "../models/matchListing.model.js";
 import {KnownSkill} from "../models/knownskill.model.js"
 import {TargetSkill} from "../models/targetskill.model.js"
 import {Badge} from "../models/badge.model.js"
@@ -700,6 +700,27 @@ const getAllListingsController = async (req, res) => {
     res.status(200).json(listings);
   } catch (err) {
     res.status(500).json({ message: "Error fetching match listings", error: err.message });
+  }
+};
+// src/controllers/user.controller.js
+
+
+// POST /matchlistings
+export const createMatchListingController = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { skills, role } = req.body;
+
+    const newListing = await MatchListing.create({
+      user: userId,
+      skills,
+      role
+    });
+
+    res.status(201).json({ success: true, listing: newListing });
+  } catch (error) {
+    console.error("Error creating match listing:", error);
+    res.status(500).json({ success: false, message: "Failed to create listing" });
   }
 };
 
