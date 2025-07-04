@@ -38,6 +38,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
+const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:8000");
 
 io.on("connection", (socket) => {
   console.log("🔌 A user connected");
