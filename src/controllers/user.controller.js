@@ -706,21 +706,27 @@ const getAllListingsController = async (req, res) => {
 
 
 // POST /matchlistings
+import MatchListing from "../models/matchListing.model.js";
+
 export const createMatchListingController = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { skills, role } = req.body;
+    const userId = req.user.id || req.user._id;
+    const { role, skills } = req.body;
+
+    if (!role || !Array.isArray(skills) || skills.length === 0) {
+      return res.status(400).json({ message: "Role and skills are required" });
+    }
 
     const newListing = await MatchListing.create({
       user: userId,
-      skills,
-      role
+      role,
+      skills
     });
 
-    res.status(201).json({ success: true, listing: newListing });
+    return res.status(201).json({ success: true, listing: newListing });
   } catch (error) {
-    console.error("Error creating match listing:", error);
-    res.status(500).json({ success: false, message: "Failed to create listing" });
+    console.error("❌ Failed to create match listing:", error);
+    return res.status(500).json({ message: "Failed to create listing" });
   }
 };
 
