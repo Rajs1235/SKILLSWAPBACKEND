@@ -25,7 +25,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/v1/users", userRoutes);
-+ app.use("/api/v1/matchlistings", matchListingRoutes);
+app.use("/api/v1/matchlistings", matchListingRoutes);
 app.use("/v1/chat", chatRoutes);
 app.use("/v1/match", matchRoutes);
 
