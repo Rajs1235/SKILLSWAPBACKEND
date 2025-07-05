@@ -30,21 +30,31 @@ export const addConnection = async (req, res) => {
   }
 };
 // controllers/connection.controller.js
+import Connection from '../models/connection.model.js';
+
 export const removeConnectionController = async (req, res) => {
   try {
-    const currentUserId = req.user.id;
+    const currentUserId = req.user?.id;
     const targetUserId = req.params.userId;
 
-    await Connection.deleteOne({
+    if (!currentUserId || !targetUserId) {
+      return res.status(400).json({ message: 'Invalid user ID(s)' });
+    }
+
+    const result = await Connection.deleteOne({
       $or: [
         { user1: currentUserId, user2: targetUserId },
         { user1: targetUserId, user2: currentUserId }
       ]
     });
 
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Connection not found' });
+    }
+
     res.status(200).json({ message: 'Connection removed successfully' });
   } catch (error) {
-    console.error('Error removing connection:', error);
+    console.error('❌ Error removing connection:', error);
     res.status(500).json({ message: 'Failed to remove connection' });
   }
 };
