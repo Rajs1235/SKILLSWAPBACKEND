@@ -35,32 +35,39 @@ return {accesstoken,refreshtoken}
         throw new ApiError(500,"somethingwentwrong");
         
     }
-}
-const registerUser = asyncHandler(async (req, res) => {
-  const { fullName,username, email, password } = req.body;
+}const registerUser = asyncHandler(async (req, res) => {
+  const { fullName, username, email, password } = req.body;
 
+  // Step 1: Validate input
+  if ([email, username, password].some(field => !field?.trim())) {
+    throw new ApiError(400, "All fields are required");
+  }
 
+  // Step 2: Check if user already exists
+  const existingUser = await User.findOne({
+    $or: [{ email }, { username }]
+  });
 
-    // Step 1: Validate input (no fullName or avatar for now)
-    if ([email, username, password].some(field => !field?.trim())) {
-        throw new ApiError(400, "All fields are required");
-    }
+  if (existingUser) {
+    throw new ApiError(409, "User with email or username already exists");
+  }
 
-    // Step 2: Check if user already exists
-    const existingUser = await User.findOne({
-        $or: [{ email }, { username }]
-    });
+  // Step 3: Create user
+  const user = await User.create({
+    fullName,
+    username,
+    email,
+    password
+  });
 
-    if (existingUser) {
-        throw new ApiError(409, "User with email or username already exists");
-    }
+  // Step 4: Auto-create match listing for the user
+  await MatchListing.create({ user: user._id });
 
-    // Step 3: Create user (no avatar, no cover image)
- const user = await User.create({
-username,
-  fullName, // ✅ now included
-  email,
-  password
+  // Step 5: Send success response
+  res.status(201).json({
+    message: "User registered and listed successfully",
+    userId: user._id
+  });
 });
 
     const createdUser = await User.findById(user._id).select("-password -refreshToken");
