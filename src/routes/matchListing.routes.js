@@ -4,11 +4,11 @@ import { getAllListingsController, createMatchListing  } from "../controllers/us
 import { verifyJWT } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
-
+router.post("/", verifyJWT, createMatchListing );
 // Get all match listings
 router.get("/", verifyJWT, getAllListingsController);
 
 // ✅ Add this POST route to support new listing creation
-router.post("/", verifyJWT, createMatchListing );
+
 
 export default router;
