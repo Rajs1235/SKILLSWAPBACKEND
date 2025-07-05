@@ -25,6 +25,7 @@ import {
   getMessages,
   sendMessage,
   addTargetSkill,
+  removeConnectionController ,
   getTimeStats,
   updateTime
 } from "../controllers/user.controller.js";
@@ -75,6 +76,8 @@ router.route('/badges')
   .get(verifyJWT, getUserBadges)
   .post(verifyJWT, awardBadge);
 
+// In connection.routes.js
+router.delete('/:userId', authenticate, removeConnectionController);
 
 router.get('/all', verifyJWT, getAllUsers);
 // =================== MESSAGING ROUTES ===================
