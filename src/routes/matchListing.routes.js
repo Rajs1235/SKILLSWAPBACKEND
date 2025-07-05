@@ -1,6 +1,6 @@
 // src/routes/matchListing.routes.js
 import express from "express";
-import { getAllListingsController, createMatchListingController } from "../controllers/user.controller.js";
+import { getAllListingsController, createMatchListing  } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -9,6 +9,6 @@ const router = express.Router();
 router.get("/", verifyJWT, getAllListingsController);
 
 // ✅ Add this POST route to support new listing creation
-router.post("/", verifyJWT, createMatchListingController);
+router.post("/", verifyJWT, createMatchListing );
 
 export default router;
