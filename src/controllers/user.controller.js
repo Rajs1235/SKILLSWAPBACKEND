@@ -61,26 +61,22 @@ return {accesstoken,refreshtoken}
     password
   });
 
-  // Step 4: Auto-create match listing for the user
+  // Step 4: Auto-create match listing
   await MatchListing.create({ user: user._id });
 
-  // Step 5: Send success response
-  res.status(201).json({
-    message: "User registered and listed successfully",
-    userId: user._id
-  });
+  // Step 5: Clean user object before sending
+  const createdUser = await User.findById(user._id).select("-password -refreshToken");
+
+  if (!createdUser) {
+    throw new ApiError(500, "Something went wrong while creating user");
+  }
+
+  // ✅ Final Response
+  return res.status(201).json(
+    new ApiResponse(201, createdUser, "User registered and listed successfully")
+  );
 });
 
-    const createdUser = await User.findById(user._id).select("-password -refreshToken");
-
-    if (!createdUser) {
-        throw new ApiError(500, "Something went wrong while creating user");
-    }
-
-    return res.status(201).json(
-        new ApiResponse(201, createdUser, "User registered successfully")
-    );
-});
 
   const loginUser = asyncHandler(async (req, res) => {
     // Debugging: Log the incoming request body
