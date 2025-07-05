@@ -6,5 +6,5 @@ const router = express.Router();
 
 router.post('/', verifyJWT, addConnection);
 router.get('/', verifyJWT, getConnections);
-
+router.delete('/:userId', authenticate, removeConnectionController);
 export default router;
