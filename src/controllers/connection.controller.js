@@ -3,10 +3,10 @@ import {User} from '../models/user.model.js';
 
 export const addConnection = async (req, res) => {
   try {
-    const currentUser = req.user;
+    const { _id: currentUserId } = req.user; // ✅ From token
     const { userId } = req.body;
 
-    if (!userId || userId === currentUser._id) {
+    if (!userId || userId === currentUserId.toString()) {
       return res.status(400).json({ message: 'Invalid connection user.' });
     }
 
@@ -15,14 +15,17 @@ export const addConnection = async (req, res) => {
       return res.status(404).json({ message: 'User to connect not found.' });
     }
 
-    if (!currentUser.connections.includes(userId)) {
-      currentUser.connections.push(userId);
-      await currentUser.save();
+    // ✅ Fetch actual user from DB
+    const currentUserDoc = await User.findById(currentUserId);
+
+    if (!currentUserDoc.connections.includes(userId)) {
+      currentUserDoc.connections.push(userId);
+      await currentUserDoc.save();
     }
 
     res.status(200).json({ message: 'Connection added successfully.' });
   } catch (err) {
-    console.error(err);
+    console.error('Failed to add connection:', err);
     res.status(500).json({ message: 'Failed to add connection.' });
   }
 };
