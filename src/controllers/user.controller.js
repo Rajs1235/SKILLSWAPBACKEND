@@ -693,20 +693,20 @@ export const addMatchController = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-const getAllListingsController = async (req, res) => {
+export const getAllListingsController = async (req, res) => {
   try {
-    const listings = await MatchListing.find();
-    res.status(200).json(listings);
+    const allUsers = await MatchListing.find().populate("user", "name role skills");
+    const simplified = allUsers.map(listing => ({
+      user: listing.user._id,
+      name: listing.user.name,
+      role: listing.user.role,
+      skills: listing.user.skills
+    }));
+    res.json(simplified);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching match listings", error: err.message });
+    res.status(500).json({ message: "Failed to fetch listings" });
   }
 };
-// src/controllers/user.controller.js
-
-
-// POST /matchlistings
-
 
 export const createMatchListingController = async (req, res) => {
   try {
