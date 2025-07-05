@@ -61,9 +61,7 @@ return {accesstoken,refreshtoken}
     password
   });
 
-  // Step 4: Auto-create match listing
-  await MatchListing.create({ user: user._id });
-
+  
   // Step 5: Clean user object before sending
   const createdUser = await User.findById(user._id).select("-password -refreshToken");
 
