@@ -289,53 +289,58 @@ const generateRoomId = (a, b) => {
   return crypto.createHash('sha256').update(sorted.join('-')).digest('hex').slice(0, 16);
 };
 const getMatchesForUser = asyncHandler(async (req, res) => {
-const known = await KnownSkill.findOne({ userId: req.user._id });
-const target = await TargetSkill.findOne({ userId: req.user._id });
+  const userId = req.params.userId;
 
-const knownSkillNames = known?.skills.map(s => s.skill) || [];
-const targetSkillNames = target?.skills.map(s => s.skill) || [];
+  const known = await KnownSkill.findOne({ userId });
+  const target = await TargetSkill.findOne({ userId });
 
+  const knownSkillNames = known?.skills.map(s => s.skill) || [];
+  const targetSkillNames = target?.skills.map(s => s.skill) || [];
 
-  const allUsers = await User.find({ _id: { $ne: req.user._id } }); // exclude self
+  const currentUser = await User.findById(userId);
+  if (!currentUser) {
+    return res.status(404).json({ message: "User not found" });
+  }
 
+  const allUsers = await User.find({ _id: { $ne: userId } }); // exclude self
   const matches = [];
 
   for (const user of allUsers) {
- const [userKnownDoc, userTargetDoc] = await Promise.all([
-  KnownSkill.findOne({ userId: user._id }),
-  TargetSkill.findOne({ userId: user._id })
-]);
+    const [userKnownDoc, userTargetDoc] = await Promise.all([
+      KnownSkill.findOne({ userId: user._id }),
+      TargetSkill.findOne({ userId: user._id })
+    ]);
 
-const userKnownSkills = userKnownDoc?.skills.map(s => s.skill) || [];
-const userTargetSkills = userTargetDoc?.skills.map(s => s.skill) || [];
-
+    const userKnownSkills = userKnownDoc?.skills.map(s => s.skill) || [];
+    const userTargetSkills = userTargetDoc?.skills.map(s => s.skill) || [];
 
     const skillsTheyCanTeachYou = userKnownSkills.filter(skill => targetSkillNames.includes(skill));
     const skillsYouCanTeachThem = userTargetSkills.filter(skill => knownSkillNames.includes(skill));
 
     if (skillsTheyCanTeachYou.length && skillsYouCanTeachThem.length) {
-      const chatRoomId = generateRoomId(req.user.username, user.username);
-      const videoRoomId = generateRoomId(req.user._id.toString(), user._id.toString());
+      const chatRoomId = generateRoomId(currentUser.username, user.username);
+      const videoRoomId = generateRoomId(userId.toString(), user._id.toString());
 
       matches.push({
         userId: user._id,
         fullName: user.fullName,
         username: user.username,
         avatar: user.avatar,
-chatRoomId,
-videoRoomId 
+        chatRoomId,
+        videoRoomId
       });
     }
   }
+
   await Matches.findOneAndUpdate(
-    { username: req.user.username },
+    { username: currentUser.username },
     {
-      $set:{
+      $set: {
         matches: matches.map(m => m.userId)
       }
     },
     { upsert: true, new: true }
-  )
+  );
 
   res.status(200).json(new ApiResponse(200, matches, "Matches fetched"));
 });
