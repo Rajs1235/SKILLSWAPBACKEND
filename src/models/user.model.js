@@ -59,6 +59,10 @@ const userSchema = new Schema({
   refreshToken: {
     type: String,
   },
+
+  // ✅ Add this field for populate() to work
+  connections: [{ type: Schema.Types.ObjectId, ref: "User" }],
+
 }, { timestamps: true });
 
 // Hash password before saving
@@ -101,3 +105,4 @@ userSchema.methods.generateRefreshToken = function () {
 };
 
 export const User = mongoose.model("User", userSchema);
+
