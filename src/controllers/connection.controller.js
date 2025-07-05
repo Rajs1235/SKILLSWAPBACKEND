@@ -29,6 +29,25 @@ export const addConnection = async (req, res) => {
     res.status(500).json({ message: 'Failed to add connection.' });
   }
 };
+// controllers/connection.controller.js
+export const removeConnectionController = async (req, res) => {
+  try {
+    const currentUserId = req.user.id;
+    const targetUserId = req.params.userId;
+
+    await Connection.deleteOne({
+      $or: [
+        { user1: currentUserId, user2: targetUserId },
+        { user1: targetUserId, user2: currentUserId }
+      ]
+    });
+
+    res.status(200).json({ message: 'Connection removed successfully' });
+  } catch (error) {
+    console.error('Error removing connection:', error);
+    res.status(500).json({ message: 'Failed to remove connection' });
+  }
+};
 
 export const getConnections = async (req, res) => {
   try {
