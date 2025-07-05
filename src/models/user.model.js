@@ -23,60 +23,53 @@ const userSchema = new Schema({
     trim: true,
     index: true,
   },
-  firstName: {
-    type: String,
-    trim: true,
-  },
-  lastName: {
-    type: String,
-    trim: true,
-  },
+  firstName: { type: String, trim: true },
+  lastName: { type: String, trim: true },
+
   role: {
     type: String,
     enum: ["Learner", "Tutor"],
     default: "Learner",
   },
+
   skills: {
     type: [String],
     default: [],
   },
+
   onboardingComplete: {
     type: Boolean,
     default: false,
   },
-  avatar: {
-    type: String,
-    default: "",
-  },
-  coverImage: {
-    type: String,
-    default: "",
-  },
+
+  avatar: { type: String, default: "" },
+  coverImage: { type: String, default: "" },
+
   password: {
     type: String,
     required: [true, "Password is required"],
   },
-  refreshToken: {
-    type: String,
-  },
 
-  // ✅ Add this field for populate() to work
+  refreshToken: { type: String },
+
+  // ✅ Tracks all connected users (both Learner-Tutor, etc.)
   connections: [{ type: Schema.Types.ObjectId, ref: "User" }],
+},
+{ timestamps: true });
 
-}, { timestamps: true });
-
-// Hash password before saving
+// 🔐 Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-// Custom methods
+// 🔑 Password comparison
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
+// 🔐 Access token
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
@@ -92,11 +85,10 @@ userSchema.methods.generateAccessToken = function () {
   );
 };
 
+// 🔄 Refresh token
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
-    {
-      _id: this._id,
-    },
+    { _id: this._id },
     process.env.REFRESH_TOKEN_SECRET,
     {
       expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
