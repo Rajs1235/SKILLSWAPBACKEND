@@ -77,7 +77,7 @@ router.route('/badges')
   .post(verifyJWT, awardBadge);
 
 // In connection.routes.js
-router.delete('/:userId', authenticate, removeConnectionController);
+router.delete('/:userId', verifyJWT, removeConnectionController);
 
 router.get('/all', verifyJWT, getAllUsers);
 // =================== MESSAGING ROUTES ===================
