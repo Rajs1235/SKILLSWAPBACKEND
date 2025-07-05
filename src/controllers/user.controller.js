@@ -12,7 +12,7 @@ import Message from "../models/message.model.js"
 import {Matches} from "../models/matches.model.js"
 import {Progress} from "../models/progress.model.js"
 import Connection from '../models/connection.model.js';
-import User from '../models/user.model.js';
+
 import {TimeTracker} from "../models/timetracker.model.js"
 import crypto from 'crypto';
 // ✅ Ensure correct path
