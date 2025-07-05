@@ -14,6 +14,10 @@ import connectionRoutes from './routes/connection.routes.js';
 
 const app = express();
 
+// ✅ Mount routers with prefixes
+app.use('/api/v1/users', userRoutes);
+ // <-- this line is crucial
+
 // Middleware
 app.use(cors());
 app.use(express.json());
