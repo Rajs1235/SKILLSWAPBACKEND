@@ -4,7 +4,7 @@ import { verifyJWT } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-router.post('/', verifyJWT, createConnection);
+router.post('/', verifyJWT, addConnection);
 router.get('/', verifyJWT, getConnections);
 
 export default router;
