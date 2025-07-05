@@ -702,7 +702,7 @@ export const addMatchController = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-export const getAllListingsController = async (req, res) => {
+export const getAllListingsController =asyncHandler( async (req, res) => {
   try {
     const allUsers = await MatchListing.find().populate("user", "name role skills");
     const simplified = allUsers.map(listing => ({
@@ -715,7 +715,7 @@ export const getAllListingsController = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch listings" });
   }
-};
+});
 export const createMatchListing = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { role, skills } = req.body;
