@@ -748,7 +748,7 @@ export {
   getTargetSkills,
   getUserProgress,
   getProfileController,
-    getAllListingsController,
+  
   updateUserProgress,
   getUserBadges,
   awardBadge,
