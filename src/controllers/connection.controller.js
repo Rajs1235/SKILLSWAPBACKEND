@@ -1,0 +1,44 @@
+// src/controllers/connection.controller.js
+import User from '../models/user.model.js';
+
+export const addConnection = async (req, res) => {
+  try {
+    const currentUser = req.user;
+    const { userId } = req.body;
+
+    if (!userId || userId === currentUser._id) {
+      return res.status(400).json({ message: 'Invalid connection user.' });
+    }
+
+    const userToConnect = await User.findById(userId);
+    if (!userToConnect) {
+      return res.status(404).json({ message: 'User to connect not found.' });
+    }
+
+    if (!currentUser.connections.includes(userId)) {
+      currentUser.connections.push(userId);
+      await currentUser.save();
+    }
+
+    res.status(200).json({ message: 'Connection added successfully.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to add connection.' });
+  }
+};
+
+export const getConnections = async (req, res) => {
+  try {
+    const currentUser = req.user;
+
+    const populatedUser = await User.findById(currentUser._id).populate(
+      'connections',
+      '-password'
+    );
+
+    res.status(200).json({ connections: populatedUser.connections || [] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to get connections.' });
+  }
+};
