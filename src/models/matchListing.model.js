@@ -6,6 +6,15 @@ const matchListingSchema = new mongoose.Schema({
     ref: "User",
     required: true,
     unique: true
+  },
+  role: {
+    type: String,
+    enum: ['Tutor', 'Learner'],
+    required: true
+  },
+  skills: {
+    type: [String],
+    required: true
   }
 }, { timestamps: true });
 
