@@ -645,7 +645,7 @@ const createConversation = asyncHandler(async (req, res) => {
 const getProfileController = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select(
-      'email username firstName lastName skills role matches avatar'
+      'email username firstName lastName skills role matches avatar onboardingComplete'
     );
 console.log(user);
     if (!user) {
