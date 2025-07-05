@@ -25,12 +25,12 @@ import {
   getMessages,
   sendMessage,
   addTargetSkill,
-  removeConnectionController ,
+  
   getTimeStats,
   updateTime
 } from "../controllers/user.controller.js";
 import { verifyJWT } from '../middleware/auth.middleware.js';
-
+import {removeConnectionController} from "../controllers/connection.controller.js";
 const router = express.Router();
 
 // =================== AUTH ROUTES ===================
