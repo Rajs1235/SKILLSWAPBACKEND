@@ -76,7 +76,7 @@ router.route('/badges')
   .post(verifyJWT, awardBadge);
 
 
-router.get('/users/all', verifyJWT, getAllUsers);
+router.get('/all', verifyJWT, getAllUsers);
 // =================== MESSAGING ROUTES ===================
 router.get('/conversations', verifyJWT, getUserConversations);
 router.get('/messages/:conversationId', verifyJWT, getMessages);
