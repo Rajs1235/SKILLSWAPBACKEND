@@ -35,7 +35,8 @@ return {accesstoken,refreshtoken}
         throw new ApiError(500,"somethingwentwrong");
         
     }
-}const registerUser = asyncHandler(async (req, res) => {
+}
+    const registerUser = asyncHandler(async (req, res) => {
   const { fullName, username, email, password } = req.body;
 
   // Step 1: Validate input
