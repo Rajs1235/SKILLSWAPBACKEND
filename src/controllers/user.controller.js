@@ -712,28 +712,23 @@ export const getAllListingsController = async (req, res) => {
   }
 };
 
-export const createMatchListingController = async (req, res) => {
-  try {
-    const userId = req.user.id || req.user._id;
-    const { role, skills } = req.body;
 
-    if (!role || !Array.isArray(skills) || skills.length === 0) {
-      return res.status(400).json({ message: "Role and skills are required" });
-    }
+export const createMatchListing = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { role, skills } = req.body;
 
-    const newListing = await MatchListing.create({
-      user: userId,
-      role,
-      skills
-    });
-
-    return res.status(201).json({ success: true, listing: newListing });
-  } catch (error) {
-    console.error("❌ Failed to create match listing:", error);
-    return res.status(500).json({ message: "Failed to create listing" });
+  if (!role || !skills || !Array.isArray(skills)) {
+    throw new ApiError(400, "Role and skills array are required");
   }
-};
 
+  const listing = await MatchListing.create({
+    user: userId,
+    role,
+    skills,
+  });
+
+  res.status(201).json({ success: true, listing });
+});
 export {
   registerUser,
   loginUser,
