@@ -9,6 +9,8 @@ import matchRoutes from "./routes/match.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import matchListingRoutes from "./routes/matchListing.routes.js";
 import ChatMessage from "./models/message.model.js";
+import connectionRoutes from './routes/connection.routes.js';
+
 
 const app = express();
 
@@ -28,7 +30,7 @@ app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/matchlistings", matchListingRoutes);
 app.use("/v1/chat", chatRoutes);
 app.use("/v1/match", matchRoutes);
-
+app.use('/api/v1/connections', connectionRoutes);
 // Create HTTP server
 const server = http.createServer(app);
 
