@@ -1,5 +1,5 @@
 import express from 'express';
-import { createConnection, getConnections } from '../controllers/connection.controller.js';
+import { addConnection, getConnections } from '../controllers/connection.controller.js';
 import { verifyJWT } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
