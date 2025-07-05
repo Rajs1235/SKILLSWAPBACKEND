@@ -11,7 +11,8 @@ import {Conversation} from "../models/conversation.model.js"
 import Message from "../models/message.model.js"
 import {Matches} from "../models/matches.model.js"
 import {Progress} from "../models/progress.model.js"
-
+import Connection from '../models/connection.model.js';
+import User from '../models/user.model.js';
 import {TimeTracker} from "../models/timetracker.model.js"
 import crypto from 'crypto';
 // ✅ Ensure correct path
@@ -731,6 +732,54 @@ export const createMatchListing = asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, listing });
 });
 
+
+// Create a connection
+export const createConnection = async (req, res) => {
+  try {
+    const requester = req.user.id;
+    const { userId: recipient } = req.body;
+
+    if (requester === recipient) {
+      return res.status(400).json({ message: "You can't connect with yourself" });
+    }
+
+    const existing = await Connection.findOne({ requester, recipient });
+
+    if (existing) {
+      return res.status(400).json({ message: 'Already connected.' });
+    }
+
+    const connection = await Connection.create({ requester, recipient });
+    res.status(201).json({ success: true, connection });
+  } catch (error) {
+    console.error('Create connection error:', error);
+    res.status(500).json({ success: false, message: 'Connection failed.' });
+  }
+};
+
+// Get connections of the logged-in user
+export const getConnections = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const connections = await Connection.find({
+      $or: [{ requester: userId }, { recipient: userId }]
+    })
+      .populate('requester', 'firstName lastName username skills role')
+      .populate('recipient', 'firstName lastName username skills role');
+
+    const connectedUsers = connections.map(conn =>
+      conn.requester._id.toString() === userId
+        ? conn.recipient
+        : conn.requester
+    );
+
+    res.status(200).json({ success: true, connections: connectedUsers });
+  } catch (error) {
+    console.error('Get connections error:', error);
+    res.status(500).json({ success: false, message: 'Could not fetch connections.' });
+  }
+};
 export {
   registerUser,
   loginUser,
