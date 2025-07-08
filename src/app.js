@@ -45,10 +45,12 @@ const server = http.createServer(app);
 // Setup Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: ['http://localhost:5173', 'https://skillvibe.netlify.app/'], // update with your domain
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
+
 
 // Socket.IO logic
 io.on("connection", (socket) => {
