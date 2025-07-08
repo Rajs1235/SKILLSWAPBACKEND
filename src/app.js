@@ -15,17 +15,21 @@ import connectionRoutes from './routes/connection.routes.js';
 const app = express();
 
 // ✅ Mount routers with prefixes
-app.use('/api/v1/users', userRoutes);
+
  // <-- this line is crucial
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'https://your-frontend.netlify.app'], // replace with your frontend URL
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 app.use(express.static("public"));
 
 // Routes
+app.use('/api/v1/users', userRoutes);
 app.get("/", (req, res) => {
   res.send("✅ SkillSwap Backend is running");
 });
