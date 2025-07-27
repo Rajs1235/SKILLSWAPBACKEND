@@ -77,6 +77,9 @@ return {accesstoken,refreshtoken}
 });
 
 
+
+
+
   const loginUser = asyncHandler(async (req, res) => {
     // Debugging: Log the incoming request body
     console.log("Incoming request body:", req.body);
@@ -126,6 +129,12 @@ return {accesstoken,refreshtoken}
             refreshtoken
         }, "User logged in successfully"));
 });
+
+
+
+
+
+
 
 const logoutUser=asyncHandler(async(req,res)=>{
 await User.findByIdAndUpdate(req.user._id,{
@@ -180,6 +189,11 @@ return res
 
 })
 
+
+
+
+
+
 const changeCurrentPassword=asyncHandler(async(req,res)=>{
     const {oldpassword,newpassword}=req.body
 
@@ -203,6 +217,14 @@ return res
 .json(new ApiResponse(200,req.user,"current user fetched successfully"))
 })
  
+
+
+
+
+
+
+
+
 const updateAccountDetails=asyncHandler(async(req,res)=>{
     const {fullName,email}=req.body
     if(!fullName || !email){
@@ -283,10 +305,19 @@ $set:{
         new ApiResponse(200,user,"image updated")
     )
 })
+
+
+
+
 const generateRoomId = (a, b) => {
   const sorted = [a, b].sort(); // ensure consistent order
   return crypto.createHash('sha256').update(sorted.join('-')).digest('hex').slice(0, 16);
 };
+
+
+
+
+
 const getMatchesForUser = asyncHandler(async (req, res) => {
   const userId = req.params.userId;
 
@@ -408,6 +439,13 @@ const knownASet = new Set(knownA.flatMap(d => d.skills.map(s => s.skill)));
     videoRoomId
   }, "Match created and room IDs generated"));
 });
+
+
+
+
+
+
+
 const getKnownSkills=asyncHandler(async(req,res)=>{
       const known = await KnownSkill.findOne({ userId: req.user._id });
       if(!known) {
@@ -662,6 +700,9 @@ console.log(user);
     res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
+
+
+
 // controllers/user.controller.js
  const getAllUsers = async (req, res) => {
   try {
