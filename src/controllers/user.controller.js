@@ -70,6 +70,10 @@ return {accesstoken,refreshtoken}
     throw new ApiError(500, "Something went wrong while creating user");
   }
 
+
+  
+
+
   // ✅ Final Response
   return res.status(201).json(
     new ApiResponse(201, createdUser, "User registered and listed successfully")
@@ -92,13 +96,19 @@ return {accesstoken,refreshtoken}
     }
 
     // Find user by username or email
-    const user = await User.findOne({
-        $or: [{ username }]
-    });
+    // const user = await User.findOne({
+    //     $or: [{ username }]
+    // });
+
+    const user = await User.findOne({ username });
+
 
     if (!user) {
         throw new ApiError(404, "User not found");
     }
+
+     
+
 
     // Verify password
     const isPasswordValid = await user.isPasswordCorrect(password);
