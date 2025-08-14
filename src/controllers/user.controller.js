@@ -11,7 +11,7 @@ import {Conversation} from "../models/conversation.model.js"
 import Message from "../models/message.model.js"
 import {Matches} from "../models/matches.model.js"
 import {Progress} from "../models/progress.model.js"
-
+import twilio from 'twilio';
 
 import {TimeTracker} from "../models/timetracker.model.js"
 import crypto from 'crypto';
@@ -809,26 +809,126 @@ export const createConnection = async (req, res) => {
 };
 
 // Get connections of the logged-in user
-export const getConnections = async (req, res) => {
-  try {
+// In user.controller.js
+
+// Get connections of the logged-in user
+// In user.controller.js
+
+// ✅ FIXED: This function now correctly includes the user's _id when sending data to the frontend.
+export const getConnections = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-
     const connections = await Connection.find({
-      $or: [{ requester: userId }, { recipient: userId }]
+        $or: [{ requester: userId }, { recipient: userId }]
     })
-      .populate('requester', 'firstName lastName username skills role')
-      .populate('recipient', 'firstName lastName username skills role');
+    .populate('requester', '_id fullName username skills role avatar') // Explicitly select _id
+    .populate('recipient', '_id fullName username skills role avatar'); // Explicitly select _id
 
-    const connectedUsers = connections.map(conn =>
-      conn.requester._id.toString() === userId
-        ? conn.recipient
-        : conn.requester
-    );
+    const connectedUsers = connections.map(conn => {
+        return conn.requester._id.toString() === userId ? conn.recipient : conn.requester;
+    });
 
     res.status(200).json({ success: true, connections: connectedUsers });
+});
+
+const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
+const twilioApiKey = process.env.TWILIO_API_KEY;
+const twilioApiSecret = process.env.TWILIO_API_SECRET;
+const AccessToken = twilio.jwt.AccessToken;
+const VideoGrant = AccessToken.VideoGrant;
+
+// ✅ FIXED: This function now uses the correct logic and schema fields (`requester`, `recipient`).
+export const generateVideoToken = asyncHandler(async (req, res) => {
+  const { identity, roomName } = req.body;
+  const userId = req.user._id; // The user making the request
+
+  if (!identity || !roomName) {
+    throw new ApiError(400, "User identity and room name are required.");
+  }
+
+  // Ensure the user is requesting a token for themselves
+  if (identity.toString() !== userId.toString()) {
+      throw new ApiError(403, "Forbidden: You can only generate a token for yourself.");
+  }
+
+  // Create a new Twilio Access Token
+  const accessToken = new AccessToken(
+    twilioAccountSid,
+    twilioApiKey,
+    twilioApiSecret,
+    { identity: identity }
+  );
+
+  // Create a grant for the specific video room
+  const videoGrant = new VideoGrant({
+    room: roomName,
+  });
+
+  // Add the grant to the token
+  accessToken.addGrant(videoGrant);
+
+  // Serialize the token to a JWT and send it to the client
+  res.status(200).json(new ApiResponse(200, { token: accessToken.toJwt() }, "Twilio token generated successfully"));
+});
+
+
+/**
+ * @description Removes a connection between the logged-in user and another user.
+ * @route DELETE /api/v1/connections/:id
+ * @access Private
+ */
+export const removeConnection = asyncHandler(async (req, res) => {
+    const currentUserId = req.user.id;
+    const userToRemoveId = req.params.id;
+
+    if (!userToRemoveId || !mongoose.Types.ObjectId.isValid(userToRemoveId)) {
+        throw new ApiError(400, "Invalid or missing User ID to remove.");
+    }
+
+    // Find and delete the connection document where the two users are either requester/recipient
+    const deletedConnection = await Connection.findOneAndDelete({
+        $or: [
+            { requester: currentUserId, recipient: userToRemoveId },
+            { recipient: currentUserId, requester: userToRemoveId },
+        ],
+    });
+
+    if (!deletedConnection) {
+        throw new ApiError(404, "Connection not found.");
+    }
+
+    // Also, remove the connection from each user's 'connections' array
+    await User.findByIdAndUpdate(currentUserId, { $pull: { connections: userToRemoveId } });
+    await User.findByIdAndUpdate(userToRemoveId, { $pull: { connections: currentUserId } });
+
+    res.status(200).json(new ApiResponse(200, {}, "Connection removed successfully."));
+});
+
+
+export const updateTotalTime = async (req, res) => {
+  const { duration } = req.body;
+  const userId = req.user.id; 
+
+  if (typeof duration !== 'number' || duration <= 0) {
+    return res.status(400).json({ message: "Invalid duration." });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // 1. Add duration to the running total
+    user.totalTimeSpent += duration;
+
+    // 2. Add the individual session to the history
+    user.sessionHistory.push({ duration: duration });
+
+    await user.save();
+    res.status(200).json({ message: "Time and session history updated successfully." });
   } catch (error) {
-    console.error('Get connections error:', error);
-    res.status(500).json({ success: false, message: 'Could not fetch connections.' });
+    console.error("Error updating time:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 export {
@@ -848,8 +948,9 @@ export {
   getAllUsers, // <-- defined above and just exported here
   getTargetSkills,
   getUserProgress,
+
   getProfileController,
-  
+
   updateUserProgress,
   getUserBadges,
   awardBadge,

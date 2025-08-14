@@ -31,6 +31,10 @@ const userSchema = new Schema({
     enum: ["Learner", "Tutor"],
     default: "Learner",
   },
+  sessionHistory: [{
+    duration: { type: Number, required: true }, // Duration of the session in seconds
+    endedAt: { type: Date, default: Date.now } // When the session ended
+  }],
 
   skills: {
     type: [String],
@@ -51,7 +55,10 @@ const userSchema = new Schema({
   },
 
   refreshToken: { type: String },
-
+ totalTimeSpent: {
+    type: Number, // Storing time in seconds
+    default: 0
+  },
   // ✅ Tracks all connected users (both Learner-Tutor, etc.)
   connections: [{ type: Schema.Types.ObjectId, ref: "User" }],
 },

@@ -23,9 +23,10 @@ import {
   updateProfileController,
   getUserConversations,
   getMessages,
+  generateVideoToken,
   sendMessage,
   addTargetSkill,
-  
+  updateTotalTime,
   getTimeStats,
   updateTime
 } from "../controllers/user.controller.js";
@@ -45,9 +46,10 @@ router.get('/users/all', verifyJWT, getAllUsers);
 router.get('/profile', verifyJWT, getProfileController);
 router.put('/profile', verifyJWT, updateProfileController);
 router.post('/profile', verifyJWT, updateProfileController); // for onboarding
-
+router.post('/update-time',verifyJWT, updateTotalTime);
 router.get("/current-user", verifyJWT, getcurrentUser);
 router.patch("/update-details", verifyJWT, updateAccountDetails);
+
 
 // =================== MEDIA ROUTES ===================
 // router.patch("/avatar", verifyJWT, upload.single("avatar"), updateUserAvatar);
@@ -87,6 +89,6 @@ router.post('/messages', verifyJWT, sendMessage);
 
 // =================== TIME TRACKING ROUTES ===================
 router.get('/time', verifyJWT, getTimeStats);
-router.patch('/time', verifyJWT, updateTime);
-
+router.post('/time', verifyJWT, updateTime);
+router.route("/video/get-token").post(generateVideoToken);
 export default router;
